@@ -1,0 +1,117 @@
+# Example devenv configuration for e-commerce microservices
+apiVersion: devenv/v1
+kind: Environment
+metadata:
+  name: e-commerce
+  version: "1.0"
+  description: "Local development environment for e-commerce platform"
+
+spec:
+  defaults:
+    registry: "ghcr.io/my-org"
+    helmRepository: "oci://ghcr.io/my-org/charts"  
+    chart: "microservice"
+    namespace: "default"
+    pullPolicy: "IfNotPresent"
+
+  cluster:
+    name: ecommerce-local
+    k3d:
+      servers: 1
+      agents: 2
+      ports:
+        - "80:80@loadbalancer"
+        - "443:443@loadbalancer"
+      registry:
+        create: true
+        host: "localhost" 
+        port: 5000
+
+  services:
+    # Local development - user service  
+    - name: user-service
+      source:
+        type: local
+        path: "../user-service"
+        tag: "dev"
+      ports: [3000]
+      environment:
+        NODE_ENV: "development"
+        DB_HOST: "postgres"
+      dependencies: ["postgres"]
+      healthCheck:
+        enabled: true
+        path: "/health"
+        port: 3000
+        initialDelaySeconds: 30
+
+    # Mixed - some local, some registry
+    - name: payment-service
+      source:
+        type: registry
+        image: "${defaults.registry}/payment-service:v2.1.0"
+      ports: [3001]
+      environment:
+        NODE_ENV: "development"
+        STRIPE_WEBHOOK_SECRET: "whsec_test_123"
+      dependencies: ["postgres", "redis"]
+
+    # Use published service
+    - name: order-service
+      source:
+        type: registry
+        image: "ghcr.io/my-org/order-service:latest"
+      ports: [3002]
+      dependencies: ["user-service", "payment-service", "postgres"]
+
+    # Frontend - local development
+    - name: frontend
+      source:
+        type: local
+        path: "../frontend"
+        tag: "dev"
+      ports: [3000]
+      environment:
+        REACT_APP_API_URL: "http://api.localhost"
+
+    # External database
+    - name: postgres
+      source:
+        type: helm
+      chart:
+        repository: "https://charts.bitnami.com/bitnami"
+        name: "postgresql"
+        version: "12.12.10"
+      values:
+        auth:
+          database: "ecommerce"
+          username: "app"
+          password: "development"
+        primary:
+          persistence:
+            enabled: true
+            size: "1Gi"
+
+    # External cache
+    - name: redis
+      source:
+        type: helm  
+      chart:
+        repository: "https://charts.bitnami.com/bitnami"
+        name: "redis"
+        version: "18.4.0"
+      values:
+        auth:
+          enabled: false
+        master:
+          persistence:
+            enabled: false
+
+  volumes:
+    - name: postgres-data
+      type: persistent
+      size: "2Gi"
+      
+    - name: shared-uploads
+      type: hostPath
+      hostPath: "./data/uploads"
