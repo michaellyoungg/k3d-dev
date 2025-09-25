@@ -6,3 +6,11 @@
 plat
 *.exe
 dist/
+
+# Plat local configuration
+.plat/local.yml
+.plat/.platconfig
+
+# Plat local configuration
+.plat/local.yml
+.plat/.platconfig
