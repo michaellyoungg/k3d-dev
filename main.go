@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"devenv/cmd"
+	"plat/cmd"
 )
 
 func main() {

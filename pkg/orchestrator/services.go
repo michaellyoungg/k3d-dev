@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"devenv/pkg/config"
-	"devenv/pkg/tools"
+	"plat/pkg/config"
+	"plat/pkg/tools"
 )
 
 // ServiceOrchestrator manages service deployment and lifecycle

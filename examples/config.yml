@@ -1,5 +1,5 @@
 # Example devenv configuration for e-commerce microservices
-apiVersion: devenv/v1
+apiVersion: plat/v1
 kind: Environment
 metadata:
   name: e-commerce

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"devenv/pkg/config"
+	"plat/pkg/config"
 )
 
 // loadConfiguration loads and validates the configuration with CLI overrides

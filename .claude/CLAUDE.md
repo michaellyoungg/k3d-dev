@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This project is developing a unified command-line tool (`devenv`) for managing local microservice development environments. The tool integrates k3d (lightweight Kubernetes) and Helm (package management) to provide a seamless developer experience.
+This project is developing a unified command-line tool (`plat`) for managing local microservice development environments. The tool integrates k3d (lightweight Kubernetes) and Helm (package management) to provide a seamless developer experience.
 
 **Core Goal**: Simplify and standardize local microservice development workflows by abstracting away infrastructure complexity while maintaining flexibility and power.
 

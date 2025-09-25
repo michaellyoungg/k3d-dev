@@ -1,4 +1,4 @@
-module devenv
+module plat
 
 go 1.24.6
 

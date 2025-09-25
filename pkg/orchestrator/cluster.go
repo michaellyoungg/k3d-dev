@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"devenv/pkg/config"
-	"devenv/pkg/tools"
+	"plat/pkg/config"
+	"plat/pkg/tools"
 )
 
 // ClusterManager orchestrates k3d cluster lifecycle for plat environments

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"devenv/pkg/config"
-	"devenv/pkg/orchestrator"
+	"plat/pkg/config"
+	"plat/pkg/orchestrator"
 	"github.com/spf13/cobra"
 )
 

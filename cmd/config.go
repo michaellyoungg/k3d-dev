@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"devenv/pkg/config"
+	"plat/pkg/config"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )

@@ -31,31 +31,31 @@ Currently in development. To install from source:
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/devenv.git
-cd devenv
+git clone https://github.com/your-org/plat.git
+cd plat
 
 # Build and install
-go build -o devenv
-sudo mv devenv /usr/local/bin/
+go build -o plat
+sudo mv plat /usr/local/bin/
 ```
 
 ### Basic Usage
 
 ```bash
 # Check system prerequisites
-devenv doctor
+plat doctor
 
 # Initialize new environment
-devenv init my-project
+plat init my-project
 
 # Start environment
-devenv up
+plat up
 
 # Check status
-devenv status
+plat status
 
 # Stop environment
-devenv stop
+plat stop
 ```
 
 ## Development
@@ -64,12 +64,12 @@ devenv stop
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/devenv.git
-cd devenv
+git clone https://github.com/your-org/plat.git
+cd plat
 
 # Build and test locally
-go build -o devenv
-./devenv doctor
+go build -o plat
+./plat doctor
 
 # Run tests
 go test ./...
@@ -95,24 +95,24 @@ go fmt ./...
 
 ### Environment Lifecycle
 
-- `devenv init` - Initialize new development environment
-- `devenv up` - Start environment and services
-- `devenv stop` - Stop environment
-- `devenv status` - Show environment status
-- `devenv doctor` - Check system prerequisites
+- `plat init` - Initialize new development environment
+- `plat up` - Start environment and services
+- `plat stop` - Stop environment
+- `plat status` - Show environment status
+- `plat doctor` - Check system prerequisites
 
 ### Service Management
 
-- `devenv deploy <service>` - Deploy/update specific service
-- `devenv scale <service>=<replicas>` - Scale service instances
-- `devenv logs [--follow] [--services <list>]` - View service logs
-- `devenv exec <service> <command>` - Execute command in service
+- `plat deploy <service>` - Deploy/update specific service
+- `plat scale <service>=<replicas>` - Scale service instances
+- `plat logs [--follow] [--services <list>]` - View service logs
+- `plat exec <service> <command>` - Execute command in service
 
 ### Configuration
 
-- `devenv config show` - Display current configuration
-- `devenv config edit` - Edit configuration interactively
-- `devenv config validate` - Validate configuration files
+- `plat config show` - Display current configuration
+- `plat config edit` - Edit configuration interactively
+- `plat config validate` - Validate configuration files
 
 ## Configuration
 
@@ -154,8 +154,8 @@ services:
 ### Complete Example
 
 ```yaml
-# .devenv/config.yml
-apiVersion: devenv/v1
+# .plat/config.yml
+apiVersion: plat/v1
 kind: Environment
 metadata:
   name: e-commerce
