@@ -11,10 +11,10 @@ import (
 // View renders the current view based on the model state
 func (m *Model) View() string {
 	switch m.view {
-	case ServiceLogsView:
-		return m.renderLogsView()
 	case HomeView:
 		return m.renderHomeView()
+	case ServiceLogsView:
+		return m.renderLogsView()
 	default:
 		return "Unknown view"
 	}
