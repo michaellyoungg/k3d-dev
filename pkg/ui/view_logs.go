@@ -27,7 +27,7 @@ func (m *Model) renderLogsView() string {
 
 	// Footer with help
 	b.WriteString("\n\n")
-	b.WriteString(m.help.View(m.keys))
+	b.WriteString(m.help.View(m))
 
 	return b.String()
 }
@@ -74,7 +74,7 @@ func (m *Model) handleLogsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Back):
 		// Go back to dashboard
-		m.showingLogs = false
+		m.view = ViewDashboard
 		m.logs = nil
 		m.rawLogs = nil
 		m.logsInitialized = false
@@ -111,7 +111,7 @@ func (m *Model) handleLogsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *Model) handleLogsMsg(msg logsMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
 		m.error = msg.err
-		m.showingLogs = false
+		m.view = ViewDashboard
 		return m, nil
 	}
 

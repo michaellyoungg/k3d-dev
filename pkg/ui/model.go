@@ -53,7 +53,6 @@ type Model struct {
 	lastRefresh time.Time
 
 	// Log viewer state
-	showingLogs     bool
 	logService      string
 	logs            []string
 	rawLogs         []string // Original logs before filtering
@@ -68,31 +67,53 @@ type Model struct {
 
 // keyMap defines all key bindings for the TUI
 type keyMap struct {
-	Up              key.Binding
-	Down            key.Binding
-	Start           key.Binding
-	Stop            key.Binding
-	StopAll         key.Binding
-	Refresh         key.Binding
-	Logs            key.Binding
+	// Navigation
+	Up   key.Binding
+	Down key.Binding
+
+	// Dashboard actions
+	Start   key.Binding
+	Stop    key.Binding
+	StopAll key.Binding
+	Refresh key.Binding
+	Logs    key.Binding
+
+	// Logs actions
 	ToggleTimestamp key.Binding
 	TogglePodName   key.Binding
 	Back            key.Binding
-	Help            key.Binding
-	Quit            key.Binding
+
+	// Global
+	Help key.Binding
+	Quit key.Binding
 }
 
-func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Start, k.Stop, k.Logs, k.Refresh, k.Help, k.Quit}
+// ShortHelp returns context-aware short help based on current view
+func (m *Model) ShortHelp() []key.Binding {
+	switch m.view {
+	case ViewLogs:
+		return []key.Binding{m.keys.Up, m.keys.Down, m.keys.ToggleTimestamp, m.keys.TogglePodName, m.keys.Back, m.keys.Quit}
+	default: // ViewDashboard
+		return []key.Binding{m.keys.Start, m.keys.Stop, m.keys.Logs, m.keys.Refresh, m.keys.Help, m.keys.Quit}
+	}
 }
 
-func (k keyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Up, k.Down},
-		{k.Start, k.Stop, k.StopAll},
-		{k.Logs, k.Refresh},
-		{k.ToggleTimestamp, k.TogglePodName, k.Back},
-		{k.Help, k.Quit},
+// FullHelp returns context-aware full help based on current view
+func (m *Model) FullHelp() [][]key.Binding {
+	switch m.view {
+	case ViewLogs:
+		return [][]key.Binding{
+			{m.keys.Up, m.keys.Down},
+			{m.keys.ToggleTimestamp, m.keys.TogglePodName},
+			{m.keys.Back, m.keys.Help, m.keys.Quit},
+		}
+	default: // ViewDashboard
+		return [][]key.Binding{
+			{m.keys.Up, m.keys.Down},
+			{m.keys.Start, m.keys.Stop, m.keys.StopAll},
+			{m.keys.Logs, m.keys.Refresh},
+			{m.keys.Help, m.keys.Quit},
+		}
 	}
 }
 
@@ -258,22 +279,20 @@ func (m *Model) View() string {
 	}
 
 	// Delegate to view-specific rendering
-	if m.showingLogs {
-		return m.renderLogsView()
-	}
-
 	switch m.view {
-	case ViewDashboard:
-		return m.renderDashboardView()
+	case ViewLogs:
+		return m.renderLogsView()
 	case ViewHelp:
 		return m.renderHelpView()
+	case ViewDashboard:
+		return m.renderDashboardView()
 	default:
 		return m.renderDashboardView()
 	}
 }
 
 func (m *Model) renderHelpView() string {
-	return m.help.View(m.keys)
+	return m.help.View(m)
 }
 
 // suppressOutput redirects stdout/stderr to null during execution

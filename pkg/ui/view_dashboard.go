@@ -27,7 +27,7 @@ func (m *Model) renderDashboardView() string {
 
 	// Footer with help
 	b.WriteString("\n\n")
-	b.WriteString(m.help.View(m.keys))
+	b.WriteString(m.help.View(m))
 
 	return b.String()
 }
@@ -214,7 +214,7 @@ func (m *Model) handleDashboardKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.selectedService < len(serviceNames) {
 				name := serviceNames[m.selectedService]
 				m.logService = name
-				m.showingLogs = true
+				m.view = ViewLogs
 				return m, m.fetchLogs(name)
 			}
 		}

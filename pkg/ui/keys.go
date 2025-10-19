@@ -19,10 +19,12 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// View-specific keys
-	if m.showingLogs {
+	switch m.view {
+	case ViewLogs:
 		return m.handleLogsKeys(msg)
+	case ViewDashboard:
+		return m.handleDashboardKeys(msg)
+	default:
+		return m.handleDashboardKeys(msg)
 	}
-
-	// Dashboard keys
-	return m.handleDashboardKeys(msg)
 }
