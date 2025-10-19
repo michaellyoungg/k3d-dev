@@ -13,9 +13,7 @@ import (
 	"plat/pkg/orchestrator"
 )
 
-// Dashboard view rendering and logic
-
-func (m *Model) renderDashboardView() string {
+func (m *Model) renderHomeView() string {
 	var b strings.Builder
 
 	// Header
@@ -23,7 +21,7 @@ func (m *Model) renderDashboardView() string {
 	b.WriteString("\n\n")
 
 	// Main dashboard content
-	b.WriteString(m.renderDashboard())
+	b.WriteString(m.renderHome())
 
 	// Footer
 	b.WriteString("\n\n")
@@ -32,7 +30,7 @@ func (m *Model) renderDashboardView() string {
 	return b.String()
 }
 
-func (m *Model) renderDashboard() string {
+func (m *Model) renderHome() string {
 	var b strings.Builder
 
 	// Show operation progress if running
@@ -138,8 +136,6 @@ func (m *Model) renderServices() string {
 	return b.String()
 }
 
-// Dashboard-specific key handling
-
 func (m *Model) handleHomeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Up):
@@ -196,7 +192,7 @@ func (m *Model) handleHomeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// Dashboard commands
+// Home commands
 
 func (m *Model) refreshStatus() tea.Cmd {
 	return func() tea.Msg {

@@ -14,7 +14,7 @@ func (m *Model) View() string {
 	case ServiceLogsView:
 		return m.renderLogsView()
 	case HomeView:
-		return m.renderDashboardView()
+		return m.renderHomeView()
 	default:
 		return "Unknown view"
 	}
