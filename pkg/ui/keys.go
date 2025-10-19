@@ -123,10 +123,10 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch m.view {
-	case ServiceLogsView:
-		return m.handleLogsKeys(msg)
 	case HomeView:
 		return m.handleHomeKeys(msg)
+	case ServiceLogsView:
+		return m.handleLogsKeys(msg)
 	}
 
 	return m, nil
