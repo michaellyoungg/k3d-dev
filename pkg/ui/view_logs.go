@@ -9,8 +9,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/viewport"
-	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // Logs view rendering and logic
@@ -74,7 +74,7 @@ func (m *Model) handleLogsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Back), key.Matches(msg, m.keys.Logs):
 		// Go back to dashboard (ESC or L key to toggle)
-		m.view = ViewDashboard
+		m.view = HomeView
 		m.logs = nil
 		m.rawLogs = nil
 		m.logsInitialized = false
@@ -111,7 +111,7 @@ func (m *Model) handleLogsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *Model) handleLogsMsg(msg logsMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
 		m.error = msg.err
-		m.view = ViewDashboard
+		m.view = HomeView
 		return m, nil
 	}
 

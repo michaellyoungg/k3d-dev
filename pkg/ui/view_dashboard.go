@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"plat/pkg/orchestrator"
 )
@@ -186,7 +186,7 @@ func (m *Model) handleDashboardKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.selectedService < len(serviceNames) {
 				name := serviceNames[m.selectedService]
 				m.logService = name
-				m.view = ViewLogs
+				m.view = ServiceLogsView
 				return m, m.fetchLogs(name)
 			}
 		}

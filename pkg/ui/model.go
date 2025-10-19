@@ -2,9 +2,7 @@ package ui
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -22,9 +20,8 @@ import (
 type ViewMode int
 
 const (
-	ViewDashboard ViewMode = iota
-	ViewLogs
-	ViewHelp
+	HomeView ViewMode = iota
+	ServiceLogsView
 )
 
 // Model is the root TUI model containing shared state
@@ -93,7 +90,7 @@ type keyMap struct {
 // ShortHelp returns context-aware short help based on current view
 func (m *Model) ShortHelp() []key.Binding {
 	switch m.view {
-	case ViewLogs:
+	case ServiceLogsView:
 		return []key.Binding{m.keys.Up, m.keys.Down, m.keys.ToggleTimestamp, m.keys.TogglePodName, m.keys.Logs, m.keys.Back, m.keys.Quit}
 	default: // ViewDashboard
 		return []key.Binding{m.keys.Start, m.keys.Stop, m.keys.Logs, m.keys.Refresh, m.keys.Help, m.keys.Quit}
@@ -103,13 +100,13 @@ func (m *Model) ShortHelp() []key.Binding {
 // FullHelp returns context-aware full help based on current view
 func (m *Model) FullHelp() [][]key.Binding {
 	switch m.view {
-	case ViewLogs:
+	case ServiceLogsView:
 		return [][]key.Binding{
 			{m.keys.Up, m.keys.Down},
 			{m.keys.ToggleTimestamp, m.keys.TogglePodName},
 			{m.keys.Logs, m.keys.Back, m.keys.Help, m.keys.Quit},
 		}
-	case ViewDashboard:
+	case HomeView:
 		return [][]key.Binding{
 			{m.keys.Up, m.keys.Down},
 			{m.keys.Start, m.keys.Stop, m.keys.StopAll},
@@ -171,26 +168,6 @@ var keys = keyMap{
 	),
 }
 
-// Messages
-type statusRefreshMsg struct {
-	status *orchestrator.EnvironmentStatus
-	err    error
-}
-
-type actionCompleteMsg struct {
-	message string
-	err     error
-}
-
-type logsMsg struct {
-	service string
-	logs    []string
-	err     error
-}
-
-type tickMsg time.Time
-type clearMsg struct{}
-
 // New creates a new TUI model
 func New(runtime *config.RuntimeConfig) *Model {
 	s := spinner.New()
@@ -201,7 +178,7 @@ func New(runtime *config.RuntimeConfig) *Model {
 		runtime:        runtime,
 		orch:           orchestrator.NewOrchestrator(false),
 		ctx:            context.Background(),
-		view:           ViewDashboard,
+		view:           HomeView,
 		spinner:        s,
 		help:           help.New(),
 		keys:           keys,
@@ -209,125 +186,6 @@ func New(runtime *config.RuntimeConfig) *Model {
 		showTimestamps: false, // Hide timestamps by default to save space
 		showPodNames:   false, // Hide pod names by default to save space
 	}
-}
-
-func (m *Model) Init() tea.Cmd {
-	return tea.Batch(
-		m.spinner.Tick,
-		m.refreshStatus(),
-		tickEvery(5*time.Second),
-	)
-}
-
-func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.help.Width = msg.Width
-		return m, nil
-
-	case tea.KeyMsg:
-		return m.handleKeyPress(msg)
-
-	case spinner.TickMsg:
-		var cmd tea.Cmd
-		m.spinner, cmd = m.spinner.Update(msg)
-		return m, cmd
-
-	case statusRefreshMsg:
-		m.loading = false
-		if msg.err != nil {
-			m.error = msg.err
-		} else {
-			m.status = msg.status
-			m.error = nil
-		}
-		m.lastRefresh = time.Now()
-		return m, nil
-
-	case actionCompleteMsg:
-		m.loading = false
-		m.operation = ""
-		m.message = msg.message
-		if msg.err != nil {
-			m.error = msg.err
-		}
-		return m, tea.Batch(
-			m.refreshStatus(),
-			clearMessageAfter(3*time.Second),
-		)
-
-	case tickMsg:
-		// Auto-refresh every 5 seconds
-		return m, tea.Batch(
-			m.refreshStatus(),
-			tickEvery(5*time.Second),
-		)
-
-	case clearMsg:
-		m.message = ""
-		return m, nil
-
-	case logsMsg:
-		return m.handleLogsMsg(msg)
-	}
-
-	return m, nil
-}
-
-func (m *Model) View() string {
-	if m.width == 0 {
-		return "Loading..."
-	}
-
-	// Delegate to view-specific rendering
-	switch m.view {
-	case ViewLogs:
-		return m.renderLogsView()
-	case ViewHelp:
-		return m.renderHelpView()
-	case ViewDashboard:
-		return m.renderDashboardView()
-	default:
-		return m.renderDashboardView()
-	}
-}
-
-func (m *Model) renderHelpView() string {
-	return m.help.View(m)
-}
-
-func (m *Model) renderHeader() string {
-	title := headerStyle.Render("🎯 Plat Dashboard")
-
-	var status string
-	if m.loading && m.operation != "" {
-		// Show active operation with spinner
-		status = activeStyle.Render(m.spinner.View() + " " + m.operation + "...")
-	} else if m.message != "" {
-		// Show success message
-		status = successStyle.Render("✓ " + m.message)
-	} else if m.error != nil {
-		// Show error
-		status = errorStyle.Render("✗ " + m.error.Error())
-	} else if m.status != nil {
-		// Show last refresh time
-		elapsed := time.Since(m.lastRefresh).Round(time.Second)
-		status = dimStyle.Render(fmt.Sprintf("Last updated: %s ago", elapsed))
-	}
-
-	// Pad to fill width
-	padding := m.width - lipgloss.Width(title) - lipgloss.Width(status) - 4
-	if padding < 0 {
-		padding = 0
-	}
-
-	return title + strings.Repeat(" ", padding) + status
-}
-
-func (m *Model) renderFooter() string {
-	return m.help.View(m)
 }
 
 // suppressOutput redirects stdout/stderr to null during execution
