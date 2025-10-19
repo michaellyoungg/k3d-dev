@@ -138,6 +138,43 @@ func (so *ServiceOrchestrator) GetServiceStatuses(ctx context.Context, runtime *
 	return statuses, nil
 }
 
+// DeployService deploys a single service (public method)
+func (so *ServiceOrchestrator) DeployService(ctx context.Context, service *config.ResolvedService, runtime *config.RuntimeConfig) error {
+	if so.verbose {
+		fmt.Printf("📦 Deploying %s...\n", service.Name)
+	}
+
+	if err := so.deployService(ctx, service, runtime); err != nil {
+		return err
+	}
+
+	if so.verbose {
+		fmt.Printf("✅ %s deployed successfully\n", service.Name)
+	}
+
+	return nil
+}
+
+// UndeployService removes a single service from the environment
+func (so *ServiceOrchestrator) UndeployService(ctx context.Context, runtime *config.RuntimeConfig, serviceName string) error {
+	namespace := runtime.Base.Defaults.Namespace
+	releaseName := so.getReleaseName(serviceName, runtime)
+
+	if so.verbose {
+		fmt.Printf("🗑️  Undeploying %s...\n", serviceName)
+	}
+
+	if err := so.helmProvider.UninstallChart(ctx, releaseName, namespace); err != nil {
+		return fmt.Errorf("failed to undeploy: %w", err)
+	}
+
+	if so.verbose {
+		fmt.Printf("✅ %s undeployed\n", serviceName)
+	}
+
+	return nil
+}
+
 // deployService deploys a single service
 func (so *ServiceOrchestrator) deployService(ctx context.Context, service *config.ResolvedService, runtime *config.RuntimeConfig) error {
 	// Resolve Helm values for the service

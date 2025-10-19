@@ -77,6 +77,85 @@ func (o *Orchestrator) Down(ctx context.Context, runtime *config.RuntimeConfig, 
 	return nil
 }
 
+// StartService starts a single service
+func (o *Orchestrator) StartService(ctx context.Context, runtime *config.RuntimeConfig, serviceName string) error {
+	if o.verbose {
+		fmt.Printf("🚀 Starting service: %s\n", serviceName)
+	}
+
+	// Verify service exists
+	service, exists := runtime.ResolvedServices[serviceName]
+	if !exists {
+		return fmt.Errorf("service %s not found in configuration", serviceName)
+	}
+
+	// Deploy the service
+	if err := o.serviceManager.DeployService(ctx, service, runtime); err != nil {
+		return fmt.Errorf("failed to start service %s: %w", serviceName, err)
+	}
+
+	if o.verbose {
+		fmt.Printf("✅ Service %s started successfully\n", serviceName)
+	}
+
+	return nil
+}
+
+// StopService stops a single service
+func (o *Orchestrator) StopService(ctx context.Context, runtime *config.RuntimeConfig, serviceName string) error {
+	if o.verbose {
+		fmt.Printf("🛑 Stopping service: %s\n", serviceName)
+	}
+
+	// Verify service exists
+	if _, exists := runtime.ResolvedServices[serviceName]; !exists {
+		return fmt.Errorf("service %s not found in configuration", serviceName)
+	}
+
+	// Undeploy the service
+	if err := o.serviceManager.UndeployService(ctx, runtime, serviceName); err != nil {
+		return fmt.Errorf("failed to stop service %s: %w", serviceName, err)
+	}
+
+	if o.verbose {
+		fmt.Printf("✅ Service %s stopped successfully\n", serviceName)
+	}
+
+	return nil
+}
+
+// RestartService restarts a single service
+func (o *Orchestrator) RestartService(ctx context.Context, runtime *config.RuntimeConfig, serviceName string) error {
+	if o.verbose {
+		fmt.Printf("🔄 Restarting service: %s\n", serviceName)
+	}
+
+	// Verify service exists
+	service, exists := runtime.ResolvedServices[serviceName]
+	if !exists {
+		return fmt.Errorf("service %s not found in configuration", serviceName)
+	}
+
+	// Stop then start the service
+	if err := o.StopService(ctx, runtime, serviceName); err != nil {
+		// Continue with start even if stop failed (service might not be running)
+		if o.verbose {
+			fmt.Printf("⚠️  Stop failed (service may not be running): %v\n", err)
+		}
+	}
+
+	// Deploy the service
+	if err := o.serviceManager.DeployService(ctx, service, runtime); err != nil {
+		return fmt.Errorf("failed to restart service %s: %w", serviceName, err)
+	}
+
+	if o.verbose {
+		fmt.Printf("✅ Service %s restarted successfully\n", serviceName)
+	}
+
+	return nil
+}
+
 // Status returns the current status of the environment
 func (o *Orchestrator) Status(ctx context.Context, runtime *config.RuntimeConfig) (*EnvironmentStatus, error) {
 	status := &EnvironmentStatus{

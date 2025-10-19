@@ -12,11 +12,14 @@ type keyMap struct {
 	Down key.Binding
 
 	// Home actions
-	Start   key.Binding
-	Stop    key.Binding
-	StopAll key.Binding
-	Refresh key.Binding
-	Logs    key.Binding
+	Start          key.Binding
+	Stop           key.Binding
+	StopAll        key.Binding
+	Refresh        key.Binding
+	Logs           key.Binding
+	StartService   key.Binding
+	StopService    key.Binding
+	RestartService key.Binding
 
 	// Logs actions
 	ToggleTimestamp key.Binding
@@ -32,7 +35,7 @@ type keyMap struct {
 func (m *Model) ShortHelp() []key.Binding {
 	switch m.view {
 	case HomeView:
-		return []key.Binding{m.keys.Start, m.keys.Stop, m.keys.Logs, m.keys.Refresh, m.keys.Quit}
+		return []key.Binding{m.keys.StartService, m.keys.StopService, m.keys.RestartService, m.keys.Logs, m.keys.Quit}
 	case ServiceLogsView:
 		return []key.Binding{m.keys.Up, m.keys.Down, m.keys.ToggleTimestamp, m.keys.TogglePodName, m.keys.Logs, m.keys.Back, m.keys.Quit}
 	default:
@@ -47,6 +50,7 @@ func (m *Model) FullHelp() [][]key.Binding {
 		return [][]key.Binding{
 			{m.keys.Up, m.keys.Down},
 			{m.keys.Start, m.keys.Stop, m.keys.StopAll},
+			{m.keys.StartService, m.keys.StopService, m.keys.RestartService},
 			{m.keys.Logs, m.keys.Refresh},
 			{m.keys.Help, m.keys.Quit},
 		}
@@ -88,6 +92,18 @@ var keys = keyMap{
 	Logs: key.NewBinding(
 		key.WithKeys("l"),
 		key.WithHelp("l", "view logs"),
+	),
+	StartService: key.NewBinding(
+		key.WithKeys("s"),
+		key.WithHelp("s", "start service"),
+	),
+	StopService: key.NewBinding(
+		key.WithKeys("x"),
+		key.WithHelp("x", "stop service"),
+	),
+	RestartService: key.NewBinding(
+		key.WithKeys("R"),
+		key.WithHelp("R", "restart service"),
 	),
 	ToggleTimestamp: key.NewBinding(
 		key.WithKeys("t"),

@@ -187,6 +187,51 @@ func (m *Model) handleHomeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
+
+	case key.Matches(msg, m.keys.StartService):
+		// Get selected service name
+		if m.status != nil && len(m.status.Services) > 0 {
+			serviceNames := m.getSortedServiceNames()
+			if m.selectedService < len(serviceNames) {
+				name := serviceNames[m.selectedService]
+				m.loading = true
+				m.operation = fmt.Sprintf("Starting service: %s", name)
+				m.message = ""
+				m.error = nil
+				return m, m.startService(name)
+			}
+		}
+		return m, nil
+
+	case key.Matches(msg, m.keys.StopService):
+		// Get selected service name
+		if m.status != nil && len(m.status.Services) > 0 {
+			serviceNames := m.getSortedServiceNames()
+			if m.selectedService < len(serviceNames) {
+				name := serviceNames[m.selectedService]
+				m.loading = true
+				m.operation = fmt.Sprintf("Stopping service: %s", name)
+				m.message = ""
+				m.error = nil
+				return m, m.stopService(name)
+			}
+		}
+		return m, nil
+
+	case key.Matches(msg, m.keys.RestartService):
+		// Get selected service name
+		if m.status != nil && len(m.status.Services) > 0 {
+			serviceNames := m.getSortedServiceNames()
+			if m.selectedService < len(serviceNames) {
+				name := serviceNames[m.selectedService]
+				m.loading = true
+				m.operation = fmt.Sprintf("Restarting service: %s", name)
+				m.message = ""
+				m.error = nil
+				return m, m.restartService(name)
+			}
+		}
+		return m, nil
 	}
 
 	return m, nil
@@ -252,5 +297,62 @@ func (m *Model) stopServices(deleteCluster bool) tea.Cmd {
 		}
 
 		return actionCompleteMsg{message: msg}
+	}
+}
+
+func (m *Model) startService(serviceName string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
+		var err error
+		suppressOutput(func() error {
+			err = m.orch.StartService(ctx, m.runtime, serviceName)
+			return nil
+		})
+
+		if err != nil {
+			return actionCompleteMsg{err: err}
+		}
+
+		return actionCompleteMsg{message: fmt.Sprintf("Service %s started successfully", serviceName)}
+	}
+}
+
+func (m *Model) stopService(serviceName string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
+		var err error
+		suppressOutput(func() error {
+			err = m.orch.StopService(ctx, m.runtime, serviceName)
+			return nil
+		})
+
+		if err != nil {
+			return actionCompleteMsg{err: err}
+		}
+
+		return actionCompleteMsg{message: fmt.Sprintf("Service %s stopped successfully", serviceName)}
+	}
+}
+
+func (m *Model) restartService(serviceName string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
+		var err error
+		suppressOutput(func() error {
+			err = m.orch.RestartService(ctx, m.runtime, serviceName)
+			return nil
+		})
+
+		if err != nil {
+			return actionCompleteMsg{err: err}
+		}
+
+		return actionCompleteMsg{message: fmt.Sprintf("Service %s restarted successfully", serviceName)}
 	}
 }
