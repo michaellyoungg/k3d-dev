@@ -15,9 +15,10 @@ import (
 
 type Model struct {
 	// Shared state
-	runtime *config.RuntimeConfig
-	orch    *orchestrator.Orchestrator
-	status  *orchestrator.EnvironmentStatus
+	runtime     *config.RuntimeConfig
+	orch        *orchestrator.Orchestrator
+	status      *orchestrator.EnvironmentStatus
+	lastRefresh time.Time
 
 	// UI state
 	view            ViewMode
@@ -34,9 +35,6 @@ type Model struct {
 
 	// View-specific components
 	viewport viewport.Model
-
-	// Dashboard state
-	lastRefresh time.Time
 
 	// Log viewer state
 	logService      string

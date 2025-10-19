@@ -35,7 +35,7 @@ Features:
 			return cmd.Help()
 		}
 
-		// If no subcommand provided, launch TUI dashboard
+		// If no subcommand provided, launch TUI
 		runtime, err := loadConfiguration()
 		if err != nil {
 			return err

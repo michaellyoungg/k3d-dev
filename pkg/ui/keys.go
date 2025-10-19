@@ -11,7 +11,7 @@ type keyMap struct {
 	Up   key.Binding
 	Down key.Binding
 
-	// Dashboard actions
+	// Home actions
 	Start   key.Binding
 	Stop    key.Binding
 	StopAll key.Binding

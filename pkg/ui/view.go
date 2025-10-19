@@ -21,7 +21,7 @@ func (m *Model) View() string {
 }
 
 func (m *Model) renderHeader() string {
-	title := headerStyle.Render("🎯 Plat Dashboard")
+	title := headerStyle.Render("🎯 Local Cluster")
 
 	var status string
 	if m.loading && m.operation != "" {

@@ -20,7 +20,7 @@ func (m *Model) renderHomeView() string {
 	b.WriteString(m.renderHeader())
 	b.WriteString("\n\n")
 
-	// Main dashboard content
+	// Main home content
 	b.WriteString(m.renderHome())
 
 	// Footer

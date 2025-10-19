@@ -71,7 +71,7 @@ func (m *Model) renderLogs() string {
 func (m *Model) handleLogsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Back), key.Matches(msg, m.keys.Logs):
-		// Go back to dashboard (ESC or L key to toggle)
+		// Go back to home (ESC or L key to toggle)
 		m.view = HomeView
 		m.logs = nil
 		m.rawLogs = nil
