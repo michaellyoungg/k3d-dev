@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"plat/pkg/config"
 	"plat/pkg/orchestrator"
-	"github.com/spf13/cobra"
 )
 
 var upCmd = &cobra.Command{
@@ -41,7 +42,7 @@ Examples:
 			if err := filterRuntimeServices(runtime, args); err != nil {
 				return fmt.Errorf("service filtering failed: %w", err)
 			}
-			
+
 			if verbose {
 				fmt.Printf("Deploying specific services: %s\n", strings.Join(args, ", "))
 			}
@@ -49,7 +50,7 @@ Examples:
 
 		// Create orchestrator and validate prerequisites
 		orch := orchestrator.NewOrchestrator(verbose)
-		
+
 		printInfo("Validating prerequisites...")
 		if err := orch.ValidatePrerequisites(ctx); err != nil {
 			return fmt.Errorf("prerequisite validation failed: %w", err)
@@ -93,6 +94,6 @@ func filterRuntimeServices(runtime *config.RuntimeConfig, serviceNames []string)
 
 func init() {
 	rootCmd.AddCommand(upCmd)
-	
+
 	upCmd.Flags().StringP("services", "s", "", "Comma-separated list of services to start (deprecated: use args)")
 }

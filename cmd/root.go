@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+
+	"plat/pkg/ui"
 )
 
 var (
@@ -28,6 +30,18 @@ Features:
 • Integrated ingress and service discovery
 • Helm-native deployment with values management`,
 	Version: "0.1.0",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// If no subcommand provided, launch TUI dashboard
+		if len(args) == 0 {
+			// Load configuration for dashboard
+			runtime, err := loadConfiguration()
+			if err != nil {
+				return err
+			}
+			return ui.RunDashboard(runtime)
+		}
+		return cmd.Help()
+	},
 }
 
 func Execute() error {
