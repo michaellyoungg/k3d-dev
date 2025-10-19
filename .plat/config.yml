@@ -16,4 +16,4 @@ services:
     chart:
       repository: https://charts.bitnami.com/bitnami
       name: redis
-      version: 17.6.2
+      version: 23.1.3
