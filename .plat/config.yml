@@ -1,0 +1,14 @@
+apiVersion: plat/v1
+defaults:
+  chart: microservice
+  domain: platform.local
+  namespace: default
+  registry: msc-registry.minitab.com
+kind: Environment
+name: platform-backend
+services:
+  - name: postgres
+    chart:
+      repository: https://charts.bitnami.com/bitnami
+      name: postgresql
+      version: 18.0.17
