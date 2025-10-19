@@ -140,7 +140,7 @@ func (m *Model) renderServices() string {
 
 // Dashboard-specific key handling
 
-func (m *Model) handleDashboardKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m *Model) handleHomeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Up):
 		if m.status != nil && len(m.status.Services) > 0 {

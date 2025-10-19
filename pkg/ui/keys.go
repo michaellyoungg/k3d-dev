@@ -122,13 +122,12 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// View-specific keys
 	switch m.view {
 	case ServiceLogsView:
 		return m.handleLogsKeys(msg)
 	case HomeView:
-		return m.handleDashboardKeys(msg)
-	default:
-		return m.handleDashboardKeys(msg)
+		return m.handleHomeKeys(msg)
 	}
+
+	return m, nil
 }
