@@ -131,12 +131,18 @@ func (vm *ValuesManager) loadValuesFile(valuesFile string) (map[string]interface
 func (vm *ValuesManager) buildLocalOverrides(service *ResolvedService, runtime *RuntimeConfig) map[string]interface{} {
 	overrides := make(map[string]interface{})
 
+	// Only apply image overrides for microservice charts, not third-party charts
+	// Third-party charts (like postgresql, redis, etc.) have their own image configurations
+	isMicroserviceChart := service.Chart.Name == "microservice" || service.Chart.Repository == ""
+
 	if service.IsLocal {
 		// Override image for local builds
-		overrides["image"] = map[string]interface{}{
-			"repository": service.Name,
-			"tag":        "dev",
-			"pullPolicy": "Never", // Don't pull local images
+		if isMicroserviceChart {
+			overrides["image"] = map[string]interface{}{
+				"repository": service.Name,
+				"tag":        "dev",
+				"pullPolicy": "Never", // Don't pull local images
+			}
 		}
 
 		// Override full image reference if needed
@@ -156,8 +162,8 @@ func (vm *ValuesManager) buildLocalOverrides(service *ResolvedService, runtime *
 			"limits":   map[string]interface{}{},
 			"requests": map[string]interface{}{},
 		}
-	} else {
-		// Use registry image
+	} else if isMicroserviceChart {
+		// Only use registry image for microservice charts
 		overrides["image"] = map[string]interface{}{
 			"repository": fmt.Sprintf("%s/%s", runtime.Base.Defaults.Registry, service.Name),
 			"tag":        service.Version,
@@ -248,20 +254,26 @@ func (vm *ValuesManager) mergeValues(target, source map[string]interface{}) {
 func (vm *ValuesManager) ValidateValues(service *ResolvedService, values map[string]interface{}) error {
 	var errors []string
 
-	// Check required image configuration
-	if image, hasImage := values["image"]; hasImage {
-		if imageMap, isMap := image.(map[string]interface{}); isMap {
-			if _, hasRepo := imageMap["repository"]; !hasRepo {
-				errors = append(errors, "missing image.repository")
-			}
-			if _, hasTag := imageMap["tag"]; !hasTag {
-				errors = append(errors, "missing image.tag")
+	// Only validate image configuration for microservice charts
+	// Third-party charts have their own image defaults
+	isMicroserviceChart := service.Chart.Name == "microservice" || service.Chart.Repository == ""
+
+	if isMicroserviceChart {
+		// Check required image configuration
+		if image, hasImage := values["image"]; hasImage {
+			if imageMap, isMap := image.(map[string]interface{}); isMap {
+				if _, hasRepo := imageMap["repository"]; !hasRepo {
+					errors = append(errors, "missing image.repository")
+				}
+				if _, hasTag := imageMap["tag"]; !hasTag {
+					errors = append(errors, "missing image.tag")
+				}
+			} else {
+				errors = append(errors, "image configuration must be an object")
 			}
 		} else {
-			errors = append(errors, "image configuration must be an object")
+			errors = append(errors, "missing required image configuration")
 		}
-	} else {
-		errors = append(errors, "missing required image configuration")
 	}
 
 	// Validate service configuration

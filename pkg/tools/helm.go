@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // HelmClient implements HelmProvider for Helm CLI
@@ -23,10 +25,9 @@ func NewHelmProvider() HelmProvider {
 // InstallChart installs or upgrades a Helm chart
 func (h *HelmClient) InstallChart(ctx context.Context, release HelmRelease) error {
 	args := []string{"upgrade", "--install", release.Name}
-	
-	// Add chart reference
-	args = append(args, release.Chart)
-	
+
+	chartRef := release.Chart
+
 	// Add repository if specified
 	if release.Repository != "" {
 		// Add repository first if it's a URL
@@ -36,9 +37,18 @@ func (h *HelmClient) InstallChart(ctx context.Context, release HelmRelease) erro
 				return fmt.Errorf("failed to add helm repository: %w", err)
 			}
 			// Update chart reference to use repository
-			args[len(args)-1] = fmt.Sprintf("%s/%s", repoName, release.Chart)
+			chartRef = fmt.Sprintf("%s/%s", repoName, release.Chart)
+		}
+	} else {
+		// No repository specified - chart must be a local path or from a configured repo
+		// Check if it's a valid chart reference
+		if !strings.Contains(release.Chart, "/") && !strings.HasPrefix(release.Chart, ".") {
+			return fmt.Errorf("chart '%s' needs a repository. Either:\n  • Add a 'repository' field to the service config\n  • Use 'repo/chart' format (e.g., 'stable/nginx')\n  • Provide a local chart path", release.Chart)
 		}
 	}
+
+	// Add chart reference
+	args = append(args, chartRef)
 	
 	// Add version if specified
 	if release.Version != "" {
@@ -290,70 +300,18 @@ func (h *HelmClient) createTempValuesFile(values map[string]any) (string, error)
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
 	defer tempFile.Close()
-	
-	// Convert values to YAML and write
-	yamlData, err := convertToYAML(values)
+
+	// Convert values to YAML using proper library
+	yamlData, err := yaml.Marshal(values)
 	if err != nil {
 		return "", fmt.Errorf("failed to convert values to YAML: %w", err)
 	}
-	
-	if _, err := tempFile.WriteString(yamlData); err != nil {
+
+	if _, err := tempFile.Write(yamlData); err != nil {
 		return "", fmt.Errorf("failed to write values to temp file: %w", err)
 	}
-	
+
 	return tempFile.Name(), nil
-}
-
-// convertToYAML converts a map to YAML string (simple implementation)
-func convertToYAML(data map[string]any) (string, error) {
-	// This is a simplified YAML converter - in production you'd use a proper YAML library
-	var result strings.Builder
-	
-	for key, value := range data {
-		if err := writeYAMLValue(&result, key, value, 0); err != nil {
-			return "", err
-		}
-	}
-	
-	return result.String(), nil
-}
-
-// writeYAMLValue recursively writes YAML values
-func writeYAMLValue(builder *strings.Builder, key string, value any, indent int) error {
-	indentStr := strings.Repeat("  ", indent)
-	
-	switch v := value.(type) {
-	case map[string]any:
-		builder.WriteString(fmt.Sprintf("%s%s:\n", indentStr, key))
-		for subKey, subValue := range v {
-			if err := writeYAMLValue(builder, subKey, subValue, indent+1); err != nil {
-				return err
-			}
-		}
-	case []any:
-		builder.WriteString(fmt.Sprintf("%s%s:\n", indentStr, key))
-		for _, item := range v {
-			builder.WriteString(fmt.Sprintf("%s  - ", indentStr))
-			switch item := item.(type) {
-			case string:
-				builder.WriteString(fmt.Sprintf("%s\n", item))
-			case int:
-				builder.WriteString(fmt.Sprintf("%d\n", item))
-			default:
-				builder.WriteString(fmt.Sprintf("%v\n", item))
-			}
-		}
-	case string:
-		builder.WriteString(fmt.Sprintf("%s%s: %s\n", indentStr, key, v))
-	case int:
-		builder.WriteString(fmt.Sprintf("%s%s: %d\n", indentStr, key, v))
-	case bool:
-		builder.WriteString(fmt.Sprintf("%s%s: %t\n", indentStr, key, v))
-	default:
-		builder.WriteString(fmt.Sprintf("%s%s: %v\n", indentStr, key, v))
-	}
-	
-	return nil
 }
 
 // ValidateHelm checks if Helm is available and returns version
