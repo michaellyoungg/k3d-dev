@@ -90,28 +90,30 @@ type keyMap struct {
 // ShortHelp returns context-aware short help based on current view
 func (m *Model) ShortHelp() []key.Binding {
 	switch m.view {
+	case HomeView:
+		return []key.Binding{m.keys.Start, m.keys.Stop, m.keys.Logs, m.keys.Refresh, m.keys.Quit}
 	case ServiceLogsView:
 		return []key.Binding{m.keys.Up, m.keys.Down, m.keys.ToggleTimestamp, m.keys.TogglePodName, m.keys.Logs, m.keys.Back, m.keys.Quit}
-	default: // ViewDashboard
-		return []key.Binding{m.keys.Start, m.keys.Stop, m.keys.Logs, m.keys.Refresh, m.keys.Help, m.keys.Quit}
+	default:
+		return []key.Binding{}
 	}
 }
 
 // FullHelp returns context-aware full help based on current view
 func (m *Model) FullHelp() [][]key.Binding {
 	switch m.view {
-	case ServiceLogsView:
-		return [][]key.Binding{
-			{m.keys.Up, m.keys.Down},
-			{m.keys.ToggleTimestamp, m.keys.TogglePodName},
-			{m.keys.Logs, m.keys.Back, m.keys.Help, m.keys.Quit},
-		}
 	case HomeView:
 		return [][]key.Binding{
 			{m.keys.Up, m.keys.Down},
 			{m.keys.Start, m.keys.Stop, m.keys.StopAll},
 			{m.keys.Logs, m.keys.Refresh},
 			{m.keys.Help, m.keys.Quit},
+		}
+	case ServiceLogsView:
+		return [][]key.Binding{
+			{m.keys.Up, m.keys.Down},
+			{m.keys.ToggleTimestamp, m.keys.TogglePodName},
+			{m.keys.Logs, m.keys.Back, m.keys.Help, m.keys.Quit},
 		}
 	}
 	return [][]key.Binding{}

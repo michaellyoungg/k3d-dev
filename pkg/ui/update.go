@@ -14,6 +14,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.help.Width = msg.Width
+
+		// Update viewport dimensions if it's been initialized
+		if m.logsInitialized {
+			m.viewport.Width = msg.Width
+			m.viewport.Height = msg.Height - 10
+		}
 		return m, nil
 
 	case tea.KeyMsg:
