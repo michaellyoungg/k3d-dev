@@ -13,7 +13,6 @@ import (
 	"plat/pkg/orchestrator"
 )
 
-// Model is the root TUI model containing shared state
 type Model struct {
 	// Shared state
 	runtime *config.RuntimeConfig
@@ -52,13 +51,12 @@ type Model struct {
 	height int
 }
 
-// newModel creates a new TUI model
-func newModel(runtime *config.RuntimeConfig) *Model {
+func RunTUI(runtime *config.RuntimeConfig) error {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
-	return &Model{
+	m := &Model{
 		runtime:        runtime,
 		orch:           orchestrator.NewOrchestrator(false),
 		view:           HomeView,
@@ -69,10 +67,7 @@ func newModel(runtime *config.RuntimeConfig) *Model {
 		showTimestamps: false, // Hide timestamps by default to save space
 		showPodNames:   false, // Hide pod names by default to save space
 	}
-}
 
-func RunTUI(runtime *config.RuntimeConfig) error {
-	m := newModel(runtime)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {
