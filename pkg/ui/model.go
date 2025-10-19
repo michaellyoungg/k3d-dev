@@ -213,8 +213,7 @@ func suppressOutput(fn func() error) error {
 	return fn()
 }
 
-// RunDashboard starts the interactive dashboard
-func RunDashboard(runtime *config.RuntimeConfig) error {
+func RunTUI(runtime *config.RuntimeConfig) error {
 	m := New(runtime)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 

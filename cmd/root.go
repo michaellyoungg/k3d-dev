@@ -38,7 +38,7 @@ Features:
 			if err != nil {
 				return err
 			}
-			return ui.RunDashboard(runtime)
+			return ui.RunTUI(runtime)
 		}
 		return cmd.Help()
 	},
@@ -53,7 +53,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&configPath, "config", "c", "", "Config file (default is .plat/config.yml)")
 	rootCmd.PersistentFlags().StringVarP(&mode, "mode", "m", "", "Execution mode: 'local' or 'artifact' (overrides config)")
 	rootCmd.PersistentFlags().BoolVar(&strict, "strict", false, "Enable strict validation (fail on warnings)")
-	
+
 	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
 		if verbose {
 			fmt.Printf("plat v%s\n", rootCmd.Version)
