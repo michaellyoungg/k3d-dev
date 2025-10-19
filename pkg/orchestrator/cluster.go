@@ -3,6 +3,7 @@ package orchestrator
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"plat/pkg/config"
@@ -26,7 +27,7 @@ func NewClusterManager(verbose bool) *ClusterManager {
 // EnsureCluster ensures the cluster exists and is running for the environment
 func (cm *ClusterManager) EnsureCluster(ctx context.Context, runtime *config.RuntimeConfig) error {
 	clusterName := cm.getClusterName(runtime)
-	
+
 	if cm.verbose {
 		fmt.Printf("🔍 Checking cluster: %s\n", clusterName)
 	}
@@ -35,7 +36,7 @@ func (cm *ClusterManager) EnsureCluster(ctx context.Context, runtime *config.Run
 	status, err := cm.provider.GetClusterStatus(ctx, clusterName)
 	if err == nil && status.Status == "running" {
 		if cm.verbose {
-			fmt.Printf("✅ Cluster %s is already running (%d servers, %d agents)\n", 
+			fmt.Printf("✅ Cluster %s is already running (%d servers, %d agents)\n",
 				clusterName, status.Servers, status.Agents)
 		}
 		return nil
@@ -48,6 +49,10 @@ func (cm *ClusterManager) EnsureCluster(ctx context.Context, runtime *config.Run
 
 	clusterConfig := cm.buildClusterConfig(runtime)
 	if err := cm.provider.CreateCluster(ctx, clusterConfig); err != nil {
+		// Check if this is a port conflict error
+		if strings.Contains(err.Error(), "port is already allocated") {
+			return fmt.Errorf("failed to create cluster: %w\n\nHint: Another k3d cluster may be using the same ports. Try:\n  • plat down --cluster  (to stop current environment)\n  • k3d cluster delete <name>  (to delete conflicting cluster)\n  • k3d cluster list  (to see all clusters)", err)
+		}
 		return fmt.Errorf("failed to create cluster: %w", err)
 	}
 
@@ -66,7 +71,7 @@ func (cm *ClusterManager) EnsureCluster(ctx context.Context, runtime *config.Run
 // DeleteCluster removes the cluster for the environment
 func (cm *ClusterManager) DeleteCluster(ctx context.Context, runtime *config.RuntimeConfig) error {
 	clusterName := cm.getClusterName(runtime)
-	
+
 	if cm.verbose {
 		fmt.Printf("🗑️  Deleting cluster: %s\n", clusterName)
 	}
@@ -120,7 +125,7 @@ func (cm *ClusterManager) isPlatCluster(name string) bool {
 // buildClusterConfig creates k3d cluster configuration from environment config
 func (cm *ClusterManager) buildClusterConfig(runtime *config.RuntimeConfig) tools.ClusterConfig {
 	clusterName := cm.getClusterName(runtime)
-	
+
 	config := tools.ClusterConfig{
 		Name:    clusterName,
 		Servers: 1, // Single server for local development
@@ -154,7 +159,7 @@ func (cm *ClusterManager) buildClusterConfig(runtime *config.RuntimeConfig) tool
 // collectServicePorts gathers unique ports needed by services
 func (cm *ClusterManager) collectServicePorts(runtime *config.RuntimeConfig) []int {
 	portSet := make(map[int]bool)
-	
+
 	for _, service := range runtime.ResolvedServices {
 		for _, port := range service.Ports {
 			if port > 0 && port != 80 && port != 443 {
@@ -176,7 +181,7 @@ func (cm *ClusterManager) collectServicePorts(runtime *config.RuntimeConfig) []i
 func (cm *ClusterManager) waitForClusterReady(ctx context.Context, clusterName string) error {
 	timeout := 60 * time.Second
 	interval := 2 * time.Second
-	
+
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 

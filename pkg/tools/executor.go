@@ -53,6 +53,10 @@ func (e *DefaultProcessExecutor) Execute(ctx context.Context, cmd Command) (*Exe
 		} else {
 			result.ExitCode = 1
 		}
+		// Include stderr in error message for better debugging
+		if result.Stderr != "" {
+			return result, fmt.Errorf("command failed: %w\nStderr: %s", err, result.Stderr)
+		}
 		return result, fmt.Errorf("command failed: %w", err)
 	}
 	
