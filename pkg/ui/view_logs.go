@@ -25,9 +25,9 @@ func (m *Model) renderLogsView() string {
 	// Logs content
 	b.WriteString(m.renderLogs())
 
-	// Footer with help
+	// Footer
 	b.WriteString("\n\n")
-	b.WriteString(m.help.View(m))
+	b.WriteString(m.renderFooter())
 
 	return b.String()
 }

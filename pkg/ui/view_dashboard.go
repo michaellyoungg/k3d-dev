@@ -25,39 +25,11 @@ func (m *Model) renderDashboardView() string {
 	// Main dashboard content
 	b.WriteString(m.renderDashboard())
 
-	// Footer with help
+	// Footer
 	b.WriteString("\n\n")
-	b.WriteString(m.help.View(m))
+	b.WriteString(m.renderFooter())
 
 	return b.String()
-}
-
-func (m *Model) renderHeader() string {
-	title := headerStyle.Render("🎯 Plat Dashboard")
-
-	var status string
-	if m.loading && m.operation != "" {
-		// Show active operation with spinner
-		status = activeStyle.Render(m.spinner.View() + " " + m.operation + "...")
-	} else if m.message != "" {
-		// Show success message
-		status = successStyle.Render("✓ " + m.message)
-	} else if m.error != nil {
-		// Show error
-		status = errorStyle.Render("✗ " + m.error.Error())
-	} else if m.status != nil {
-		// Show last refresh time
-		elapsed := time.Since(m.lastRefresh).Round(time.Second)
-		status = dimStyle.Render(fmt.Sprintf("Last updated: %s ago", elapsed))
-	}
-
-	// Pad to fill width
-	padding := m.width - len(title) - len(status) - 4
-	if padding < 0 {
-		padding = 0
-	}
-
-	return title + strings.Repeat(" ", padding) + status
 }
 
 func (m *Model) renderDashboard() string {
