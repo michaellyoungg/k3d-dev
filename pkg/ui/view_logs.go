@@ -53,7 +53,7 @@ func (m *Model) renderLogs() string {
 		toggleInfo = append(toggleInfo, "pod names: off")
 	}
 
-	b.WriteString(dimStyle.Render(fmt.Sprintf("Use ↑/↓ to scroll • t/p to toggle %s • ESC to go back", strings.Join(toggleInfo, " • "))))
+	b.WriteString(dimStyle.Render(fmt.Sprintf("Use ↑/↓ to scroll • t/p to toggle %s • l/ESC to go back", strings.Join(toggleInfo, " • "))))
 	b.WriteString("\n\n")
 
 	// Show viewport if logs are loaded
@@ -72,8 +72,8 @@ func (m *Model) renderLogs() string {
 
 func (m *Model) handleLogsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
-	case key.Matches(msg, m.keys.Back):
-		// Go back to dashboard
+	case key.Matches(msg, m.keys.Back), key.Matches(msg, m.keys.Logs):
+		// Go back to dashboard (ESC or L key to toggle)
 		m.view = ViewDashboard
 		m.logs = nil
 		m.rawLogs = nil

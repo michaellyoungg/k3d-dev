@@ -92,7 +92,7 @@ type keyMap struct {
 func (m *Model) ShortHelp() []key.Binding {
 	switch m.view {
 	case ViewLogs:
-		return []key.Binding{m.keys.Up, m.keys.Down, m.keys.ToggleTimestamp, m.keys.TogglePodName, m.keys.Back, m.keys.Quit}
+		return []key.Binding{m.keys.Up, m.keys.Down, m.keys.ToggleTimestamp, m.keys.TogglePodName, m.keys.Logs, m.keys.Back, m.keys.Quit}
 	default: // ViewDashboard
 		return []key.Binding{m.keys.Start, m.keys.Stop, m.keys.Logs, m.keys.Refresh, m.keys.Help, m.keys.Quit}
 	}
@@ -105,7 +105,7 @@ func (m *Model) FullHelp() [][]key.Binding {
 		return [][]key.Binding{
 			{m.keys.Up, m.keys.Down},
 			{m.keys.ToggleTimestamp, m.keys.TogglePodName},
-			{m.keys.Back, m.keys.Help, m.keys.Quit},
+			{m.keys.Logs, m.keys.Back, m.keys.Help, m.keys.Quit},
 		}
 	default: // ViewDashboard
 		return [][]key.Binding{
