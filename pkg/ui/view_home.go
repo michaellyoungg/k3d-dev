@@ -33,16 +33,6 @@ func (m *Model) renderHomeView() string {
 func (m *Model) renderHome() string {
 	var b strings.Builder
 
-	// Show operation progress if running
-	if m.loading && m.operation != "" {
-		b.WriteString(sectionStyle.Render("⚙️  Operation in Progress"))
-		b.WriteString("\n\n")
-		b.WriteString(activeStyle.Render(fmt.Sprintf("  %s %s...", m.spinner.View(), m.operation)))
-		b.WriteString("\n")
-		b.WriteString(dimStyle.Render("  This may take a few moments"))
-		b.WriteString("\n\n")
-	}
-
 	if m.status == nil {
 		b.WriteString(dimStyle.Render("Loading status..."))
 		return b.String()
