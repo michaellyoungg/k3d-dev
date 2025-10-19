@@ -31,16 +31,16 @@ Features:
 • Helm-native deployment with values management`,
 	Version: "0.1.0",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// If no subcommand provided, launch TUI dashboard
-		if len(args) == 0 {
-			// Load configuration for dashboard
-			runtime, err := loadConfiguration()
-			if err != nil {
-				return err
-			}
-			return ui.RunTUI(runtime)
+		if len(args) != 0 {
+			return cmd.Help()
 		}
-		return cmd.Help()
+
+		// If no subcommand provided, launch TUI dashboard
+		runtime, err := loadConfiguration()
+		if err != nil {
+			return err
+		}
+		return ui.RunTUI(runtime)
 	},
 }
 
