@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"context"
 	"time"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -19,7 +18,6 @@ type Model struct {
 	// Shared state
 	runtime *config.RuntimeConfig
 	orch    *orchestrator.Orchestrator
-	ctx     context.Context
 	status  *orchestrator.EnvironmentStatus
 
 	// UI state
@@ -54,8 +52,8 @@ type Model struct {
 	height int
 }
 
-// New creates a new TUI model
-func New(runtime *config.RuntimeConfig) *Model {
+// newModel creates a new TUI model
+func newModel(runtime *config.RuntimeConfig) *Model {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
@@ -63,7 +61,6 @@ func New(runtime *config.RuntimeConfig) *Model {
 	return &Model{
 		runtime:        runtime,
 		orch:           orchestrator.NewOrchestrator(false),
-		ctx:            context.Background(),
 		view:           HomeView,
 		spinner:        s,
 		help:           help.New(),
@@ -75,7 +72,7 @@ func New(runtime *config.RuntimeConfig) *Model {
 }
 
 func RunTUI(runtime *config.RuntimeConfig) error {
-	m := New(runtime)
+	m := newModel(runtime)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {

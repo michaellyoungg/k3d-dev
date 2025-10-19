@@ -6,7 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // Helper functions
@@ -89,4 +91,12 @@ func clearMessageAfter(d time.Duration) tea.Cmd {
 	return tea.Tick(d, func(t time.Time) tea.Msg {
 		return clearMsg{}
 	})
+}
+
+func (m *Model) createViewport(width, height int) viewport.Model {
+	vp := viewport.New(width, height)
+	vp.Style = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("62"))
+	return vp
 }

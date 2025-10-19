@@ -8,9 +8,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // Logs view rendering and logic
@@ -129,14 +127,6 @@ func (m *Model) handleLogsMsg(msg logsMsg) (tea.Model, tea.Cmd) {
 	m.viewport.GotoBottom()
 
 	return m, nil
-}
-
-func (m *Model) createViewport(width, height int) viewport.Model {
-	vp := viewport.New(width, height)
-	vp.Style = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("62"))
-	return vp
 }
 
 // Logs commands
