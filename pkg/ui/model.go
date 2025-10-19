@@ -109,7 +109,7 @@ func (m *Model) FullHelp() [][]key.Binding {
 			{m.keys.ToggleTimestamp, m.keys.TogglePodName},
 			{m.keys.Logs, m.keys.Back, m.keys.Help, m.keys.Quit},
 		}
-	default: // ViewDashboard
+	case ViewDashboard:
 		return [][]key.Binding{
 			{m.keys.Up, m.keys.Down},
 			{m.keys.Start, m.keys.Stop, m.keys.StopAll},
@@ -117,6 +117,7 @@ func (m *Model) FullHelp() [][]key.Binding {
 			{m.keys.Help, m.keys.Quit},
 		}
 	}
+	return [][]key.Binding{}
 }
 
 var keys = keyMap{
