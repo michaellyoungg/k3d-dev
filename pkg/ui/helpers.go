@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -9,6 +10,31 @@ import (
 )
 
 // Helper functions
+
+// suppressOutput redirects stdout/stderr to null during execution
+func suppressOutput(fn func() error) error {
+	// Save original stdout/stderr
+	oldStdout := os.Stdout
+	oldStderr := os.Stderr
+
+	// Redirect to null (open for writing)
+	null, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0666)
+	if err != nil {
+		return fn() // If we can't open null, just run normally
+	}
+	defer null.Close()
+
+	os.Stdout = null
+	os.Stderr = null
+
+	// Restore after execution
+	defer func() {
+		os.Stdout = oldStdout
+		os.Stderr = oldStderr
+	}()
+
+	return fn()
+}
 
 func min(a, b int) int {
 	if a < b {
