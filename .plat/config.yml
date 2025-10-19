@@ -12,3 +12,8 @@ services:
       repository: https://charts.bitnami.com/bitnami
       name: postgresql
       version: 18.0.17
+  - name: redis
+    chart:
+      repository: https://charts.bitnami.com/bitnami
+      name: redis
+      version: 17.6.2
