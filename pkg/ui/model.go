@@ -16,6 +16,21 @@ import (
 	"plat/pkg/orchestrator"
 )
 
+// NavItem represents an item in the left navigation panel
+type NavItem struct {
+	Type        NavItemType
+	Name        string
+	ServiceName string // Only populated for service items
+}
+
+// NavItemType identifies the type of navigation item
+type NavItemType int
+
+const (
+	NavItemCluster NavItemType = iota
+	NavItemService
+)
+
 type Model struct {
 	// Shared state
 	runtime     *config.RuntimeConfig
@@ -25,7 +40,9 @@ type Model struct {
 
 	// UI state
 	view            ViewMode
-	selectedService int
+	selectedNav     int // Index in navItems slice
+	navItems        []NavItem
+	selectedService int // Deprecated - will migrate to navItems
 	loading         bool
 	operation       string // Current operation being performed
 	message         string

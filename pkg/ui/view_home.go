@@ -38,16 +38,19 @@ func (m *Model) renderHome() string {
 		return b.String()
 	}
 
-	// Environment info
-	b.WriteString(sectionStyle.Render(fmt.Sprintf("Environment: %s (%s mode)", m.status.Name, m.status.Mode)))
-	b.WriteString("\n\n")
+	// Build navigation items if not already built
+	if len(m.navItems) == 0 {
+		m.navItems = m.buildNavItems()
+	}
 
-	// Cluster status
-	b.WriteString(m.renderClusterStatus())
-	b.WriteString("\n\n")
+	// Render split pane: navigation on left, detail on right
+	navPanel := m.renderNavPanel()
+	detailPanel := m.renderDetailPanel()
 
-	// Services
-	b.WriteString(m.renderServices())
+	// Join panels side by side
+	splitView := lipgloss.JoinHorizontal(lipgloss.Top, navPanel, detailPanel)
+
+	b.WriteString(splitView)
 
 	return b.String()
 }
@@ -129,14 +132,14 @@ func (m *Model) renderServices() string {
 func (m *Model) handleHomeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Up):
-		if m.status != nil && len(m.status.Services) > 0 {
-			m.selectedService = max(0, m.selectedService-1)
+		if len(m.navItems) > 0 {
+			m.selectedNav = max(0, m.selectedNav-1)
 		}
 		return m, nil
 
 	case key.Matches(msg, m.keys.Down):
-		if m.status != nil && len(m.status.Services) > 0 {
-			m.selectedService = min(len(m.status.Services)-1, m.selectedService+1)
+		if len(m.navItems) > 0 {
+			m.selectedNav = min(len(m.navItems)-1, m.selectedNav+1)
 		}
 		return m, nil
 
@@ -166,60 +169,48 @@ func (m *Model) handleHomeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, m.stopServices(true)
 
 	case key.Matches(msg, m.keys.Logs):
-		// Get selected service name using sorted list
-		if m.status != nil && len(m.status.Services) > 0 {
-			serviceNames := m.getSortedServiceNames()
-			if m.selectedService < len(serviceNames) {
-				name := serviceNames[m.selectedService]
-				m.logService = name
-				m.view = ServiceLogsView
-				return m, m.fetchLogs(name)
-			}
+		// Get selected navigation item
+		item := m.getSelectedNavItem()
+		if item != nil && item.Type == NavItemService {
+			m.logService = item.ServiceName
+			m.view = ServiceLogsView
+			return m, m.fetchLogs(item.ServiceName)
 		}
 		return m, nil
 
 	case key.Matches(msg, m.keys.StartService):
-		// Get selected service name
-		if m.status != nil && len(m.status.Services) > 0 {
-			serviceNames := m.getSortedServiceNames()
-			if m.selectedService < len(serviceNames) {
-				name := serviceNames[m.selectedService]
-				m.loading = true
-				m.operation = fmt.Sprintf("Starting service: %s", name)
-				m.message = ""
-				m.error = nil
-				return m, m.startService(name)
-			}
+		// Get selected navigation item
+		item := m.getSelectedNavItem()
+		if item != nil && item.Type == NavItemService {
+			m.loading = true
+			m.operation = fmt.Sprintf("Starting service: %s", item.ServiceName)
+			m.message = ""
+			m.error = nil
+			return m, m.startService(item.ServiceName)
 		}
 		return m, nil
 
 	case key.Matches(msg, m.keys.StopService):
-		// Get selected service name
-		if m.status != nil && len(m.status.Services) > 0 {
-			serviceNames := m.getSortedServiceNames()
-			if m.selectedService < len(serviceNames) {
-				name := serviceNames[m.selectedService]
-				m.loading = true
-				m.operation = fmt.Sprintf("Stopping service: %s", name)
-				m.message = ""
-				m.error = nil
-				return m, m.stopService(name)
-			}
+		// Get selected navigation item
+		item := m.getSelectedNavItem()
+		if item != nil && item.Type == NavItemService {
+			m.loading = true
+			m.operation = fmt.Sprintf("Stopping service: %s", item.ServiceName)
+			m.message = ""
+			m.error = nil
+			return m, m.stopService(item.ServiceName)
 		}
 		return m, nil
 
 	case key.Matches(msg, m.keys.RestartService):
-		// Get selected service name
-		if m.status != nil && len(m.status.Services) > 0 {
-			serviceNames := m.getSortedServiceNames()
-			if m.selectedService < len(serviceNames) {
-				name := serviceNames[m.selectedService]
-				m.loading = true
-				m.operation = fmt.Sprintf("Restarting service: %s", name)
-				m.message = ""
-				m.error = nil
-				return m, m.restartService(name)
-			}
+		// Get selected navigation item
+		item := m.getSelectedNavItem()
+		if item != nil && item.Type == NavItemService {
+			m.loading = true
+			m.operation = fmt.Sprintf("Restarting service: %s", item.ServiceName)
+			m.message = ""
+			m.error = nil
+			return m, m.restartService(item.ServiceName)
 		}
 		return m, nil
 	}

@@ -37,6 +37,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.status = msg.status
 			m.error = nil
+			// Rebuild navigation items when status changes
+			m.navItems = m.buildNavItems()
 		}
 		m.lastRefresh = time.Now()
 		return m, nil

@@ -100,3 +100,38 @@ func (m *Model) createViewport(width, height int) viewport.Model {
 		BorderForeground(lipgloss.Color("62"))
 	return vp
 }
+
+// buildNavItems creates navigation items from current status
+func (m *Model) buildNavItems() []NavItem {
+	items := []NavItem{}
+
+	// Always add cluster as first item
+	clusterName := "Cluster"
+	if m.status != nil && m.status.Cluster != nil && m.status.Cluster.Name != "" {
+		clusterName = m.status.Cluster.Name
+	}
+	items = append(items, NavItem{
+		Type: NavItemCluster,
+		Name: clusterName,
+	})
+
+	// Add services in alphabetical order
+	serviceNames := m.getSortedServiceNames()
+	for _, name := range serviceNames {
+		items = append(items, NavItem{
+			Type:        NavItemService,
+			Name:        name,
+			ServiceName: name,
+		})
+	}
+
+	return items
+}
+
+// getSelectedNavItem returns the currently selected navigation item
+func (m *Model) getSelectedNavItem() *NavItem {
+	if m.selectedNav < 0 || m.selectedNav >= len(m.navItems) {
+		return nil
+	}
+	return &m.navItems[m.selectedNav]
+}
