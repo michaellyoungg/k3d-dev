@@ -58,7 +58,11 @@ func (m *Model) renderHome() string {
 // Key handling for home view
 
 func (m *Model) handleHomeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Get current selection to determine context
+	item := m.getSelectedNavItem()
+
 	switch {
+	// Navigation - works everywhere
 	case key.Matches(msg, m.keys.Up):
 		if len(m.navItems) > 0 {
 			m.selectedNav = max(0, m.selectedNav-1)
@@ -71,34 +75,44 @@ func (m *Model) handleHomeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	// Refresh - works everywhere
 	case key.Matches(msg, m.keys.Refresh):
 		m.loading = true
 		return m, m.refreshStatus()
 
+	// Cluster-specific actions (only work when cluster is selected)
 	case key.Matches(msg, m.keys.Start):
-		m.loading = true
-		m.operation = "Starting environment"
-		m.message = ""
-		m.error = nil
-		return m, m.startEnvironment()
+		if item != nil && item.Type == NavItemCluster {
+			m.loading = true
+			m.operation = "Starting environment"
+			m.message = ""
+			m.error = nil
+			return m, m.startEnvironment()
+		}
+		return m, nil
 
 	case key.Matches(msg, m.keys.Stop):
-		m.loading = true
-		m.operation = "Stopping services"
-		m.message = ""
-		m.error = nil
-		return m, m.stopServices(false)
+		if item != nil && item.Type == NavItemCluster {
+			m.loading = true
+			m.operation = "Stopping services"
+			m.message = ""
+			m.error = nil
+			return m, m.stopServices(false)
+		}
+		return m, nil
 
 	case key.Matches(msg, m.keys.StopAll):
-		m.loading = true
-		m.operation = "Stopping services and deleting cluster"
-		m.message = ""
-		m.error = nil
-		return m, m.stopServices(true)
+		if item != nil && item.Type == NavItemCluster {
+			m.loading = true
+			m.operation = "Stopping services and deleting cluster"
+			m.message = ""
+			m.error = nil
+			return m, m.stopServices(true)
+		}
+		return m, nil
 
+	// Service-specific actions (only work when service is selected)
 	case key.Matches(msg, m.keys.Logs):
-		// Get selected navigation item
-		item := m.getSelectedNavItem()
 		if item != nil && item.Type == NavItemService {
 			m.logService = item.ServiceName
 			m.view = ServiceLogsView
@@ -107,8 +121,6 @@ func (m *Model) handleHomeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case key.Matches(msg, m.keys.StartService):
-		// Get selected navigation item
-		item := m.getSelectedNavItem()
 		if item != nil && item.Type == NavItemService {
 			m.loading = true
 			m.operation = fmt.Sprintf("Starting service: %s", item.ServiceName)
@@ -119,8 +131,6 @@ func (m *Model) handleHomeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case key.Matches(msg, m.keys.StopService):
-		// Get selected navigation item
-		item := m.getSelectedNavItem()
 		if item != nil && item.Type == NavItemService {
 			m.loading = true
 			m.operation = fmt.Sprintf("Stopping service: %s", item.ServiceName)
@@ -131,8 +141,6 @@ func (m *Model) handleHomeKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case key.Matches(msg, m.keys.RestartService):
-		// Get selected navigation item
-		item := m.getSelectedNavItem()
 		if item != nil && item.Type == NavItemService {
 			m.loading = true
 			m.operation = fmt.Sprintf("Restarting service: %s", item.ServiceName)

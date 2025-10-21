@@ -31,10 +31,16 @@ type keyMap struct {
 	Quit key.Binding
 }
 
-// ShortHelp returns context-aware short help based on current view
+// ShortHelp returns context-aware short help based on current view and selection
 func (m *Model) ShortHelp() []key.Binding {
 	switch m.view {
 	case HomeView:
+		item := m.getSelectedNavItem()
+		if item != nil && item.Type == NavItemCluster {
+			// Cluster selected - show cluster actions
+			return []key.Binding{m.keys.Start, m.keys.Stop, m.keys.Refresh, m.keys.Quit}
+		}
+		// Service selected - show service actions
 		return []key.Binding{m.keys.StartService, m.keys.StopService, m.keys.RestartService, m.keys.Logs, m.keys.Quit}
 	case ServiceLogsView:
 		return []key.Binding{m.keys.Up, m.keys.Down, m.keys.ToggleTimestamp, m.keys.TogglePodName, m.keys.Logs, m.keys.Back, m.keys.Quit}
@@ -43,13 +49,23 @@ func (m *Model) ShortHelp() []key.Binding {
 	}
 }
 
-// FullHelp returns context-aware full help based on current view
+// FullHelp returns context-aware full help based on current view and selection
 func (m *Model) FullHelp() [][]key.Binding {
 	switch m.view {
 	case HomeView:
+		item := m.getSelectedNavItem()
+		if item != nil && item.Type == NavItemCluster {
+			// Cluster selected - show cluster actions
+			return [][]key.Binding{
+				{m.keys.Up, m.keys.Down},
+				{m.keys.Start, m.keys.Stop, m.keys.StopAll},
+				{m.keys.Refresh},
+				{m.keys.Help, m.keys.Quit},
+			}
+		}
+		// Service selected - show service actions
 		return [][]key.Binding{
 			{m.keys.Up, m.keys.Down},
-			{m.keys.Start, m.keys.Stop, m.keys.StopAll},
 			{m.keys.StartService, m.keys.StopService, m.keys.RestartService},
 			{m.keys.Logs, m.keys.Refresh},
 			{m.keys.Help, m.keys.Quit},
