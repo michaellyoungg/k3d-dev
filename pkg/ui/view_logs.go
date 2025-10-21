@@ -290,14 +290,8 @@ func (m *Model) waitForLogLine() tea.Cmd {
 			return logStreamErrorMsg{err: err}
 		}
 
-		// Trim the newline character
-		if len(line) > 0 && line[len(line)-1] == '\n' {
-			line = line[:len(line)-1]
-		}
-		// Also trim carriage return if present (for Windows line endings)
-		if len(line) > 0 && line[len(line)-1] == '\r' {
-			line = line[:len(line)-1]
-		}
+		// Trim both \n and \r in one pass using strings.TrimRight
+		line = strings.TrimRight(line, "\r\n")
 
 		return logStreamMsg{line: line}
 	}
