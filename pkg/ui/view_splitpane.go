@@ -60,7 +60,16 @@ func (m *Model) formatNavItem(item NavItem) string {
 	case NavItemService:
 		if svc := m.getServiceComponent(item.ServiceName); svc != nil {
 			icon := getStatusIcon(svc.Status)
-			return icon + " " + item.Name
+			name := icon + " " + item.Name
+
+			// Add pod readiness if available
+			if svcStatus, ok := svc.StatusDetail.(*orchestrator.ServiceStatus); ok && svcStatus != nil {
+				if svcStatus.Deployment != nil {
+					name += " " + dimStyle.Render(svcStatus.Deployment.PodsReady)
+				}
+			}
+
+			return name
 		}
 		return "⚪ " + item.Name
 
@@ -226,6 +235,43 @@ func (m *Model) renderServiceDetail(serviceName string) string {
 		if svcStatus.Updated != "" {
 			b.WriteString(dimStyle.Render(fmt.Sprintf("Updated: %s", svcStatus.Updated)))
 			b.WriteString("\n")
+		}
+
+		// Deployment status (from Kubernetes)
+		if svcStatus.Deployment != nil {
+			b.WriteString("\n")
+			b.WriteString(sectionStyle.Render("Deployment Status"))
+			b.WriteString("\n\n")
+
+			dep := svcStatus.Deployment
+
+			// Pod phase
+			b.WriteString(fmt.Sprintf("Phase: %s", dep.Phase))
+			b.WriteString("\n")
+
+			// Container readiness
+			readyStyle := successStyle
+			if !dep.Ready {
+				readyStyle = errorStyle
+			}
+			b.WriteString(fmt.Sprintf("Containers: %s", readyStyle.Render(dep.PodsReady)))
+			b.WriteString("\n")
+
+			// Container state
+			b.WriteString(fmt.Sprintf("State: %s", dep.ContainerState))
+			b.WriteString("\n")
+
+			// Reason (if not ready)
+			if dep.Reason != "" {
+				b.WriteString(fmt.Sprintf("Reason: %s", dimStyle.Render(dep.Reason)))
+				b.WriteString("\n")
+			}
+
+			// Message (if available)
+			if dep.Message != "" {
+				b.WriteString(fmt.Sprintf("Message: %s", dimStyle.Render(dep.Message)))
+				b.WriteString("\n")
+			}
 		}
 	}
 

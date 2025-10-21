@@ -91,9 +91,21 @@ func displayEnvironmentStatus(status *orchestrator.EnvironmentStatus, detailed b
 		if service.Status != "deployed" && service.Status != "not-deployed" {
 			fmt.Printf(" [%s]", service.Status)
 		}
-		
+
+		// Show deployment status inline if available
+		if service.Deployment != nil {
+			if service.Deployment.Ready {
+				fmt.Printf(" - %s", service.Deployment.PodsReady)
+			} else {
+				fmt.Printf(" - %s", service.Deployment.PodsReady)
+				if service.Deployment.Reason != "" {
+					fmt.Printf(" (%s)", service.Deployment.Reason)
+				}
+			}
+		}
+
 		fmt.Println()
-		
+
 		if detailed {
 			if service.Chart != "" {
 				fmt.Printf("      Chart: %s\n", service.Chart)
@@ -106,6 +118,19 @@ func displayEnvironmentStatus(status *orchestrator.EnvironmentStatus, detailed b
 			}
 			if service.Updated != "" {
 				fmt.Printf("      Updated: %s\n", service.Updated)
+			}
+			// Show detailed deployment info in detailed mode
+			if service.Deployment != nil {
+				fmt.Printf("      Deployment:\n")
+				fmt.Printf("        Phase: %s\n", service.Deployment.Phase)
+				fmt.Printf("        Containers: %s\n", service.Deployment.PodsReady)
+				fmt.Printf("        State: %s\n", service.Deployment.ContainerState)
+				if service.Deployment.Reason != "" {
+					fmt.Printf("        Reason: %s\n", service.Deployment.Reason)
+				}
+				if service.Deployment.Message != "" {
+					fmt.Printf("        Message: %s\n", service.Deployment.Message)
+				}
 			}
 		}
 	}

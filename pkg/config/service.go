@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -9,7 +10,7 @@ import (
 type Service struct {
 	// For simple form: just service name (uses :latest)
 	Name string `yaml:"-"`
-	
+
 	// For complex form: full service configuration
 	ServiceName  string                 `yaml:"name,omitempty"`
 	Version      string                 `yaml:"version,omitempty"`
@@ -28,6 +29,10 @@ type ServiceChart struct {
 	Version    string `yaml:"version,omitempty"`
 }
 
+func (sc ServiceChart) FullName() string {
+	return sc.Repository + "/" + sc.Name + ":" + sc.Version
+}
+
 // UnmarshalYAML implements custom unmarshaling for union types
 func (s *Service) UnmarshalYAML(node *yaml.Node) error {
 	// Try simple form first (just a string)
@@ -36,7 +41,7 @@ func (s *Service) UnmarshalYAML(node *yaml.Node) error {
 		s.Name = serviceName
 		return nil
 	}
-	
+
 	// Fall back to complex form
 	type serviceAlias Service
 	return node.Decode((*serviceAlias)(s))
@@ -67,7 +72,7 @@ func (s *Service) IsSimpleForm() bool {
 type LocalSource struct {
 	// For simple form: just a path string
 	Path string `yaml:"-"`
-	
+
 	// For complex form: full local source configuration
 	LocalPath  string `yaml:"path,omitempty"`
 	Dockerfile string `yaml:"dockerfile,omitempty"`
@@ -83,7 +88,7 @@ func (ls *LocalSource) UnmarshalYAML(node *yaml.Node) error {
 		ls.Path = simplePath
 		return nil
 	}
-	
+
 	// Fall back to complex form
 	type localSourceAlias LocalSource
 	return node.Decode((*localSourceAlias)(ls))
@@ -141,7 +146,7 @@ func (ls *LocalSource) Validate() error {
 	if path == "" {
 		return fmt.Errorf("path is required for local source")
 	}
-	
+
 	// Additional validation can be added here (file existence, etc.)
 	return nil
 }

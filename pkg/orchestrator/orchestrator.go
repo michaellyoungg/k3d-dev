@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"plat/pkg/config"
+	"plat/pkg/tools"
 )
 
 // Orchestrator manages the complete environment lifecycle
@@ -188,14 +189,14 @@ func (o *Orchestrator) Status(ctx context.Context, runtime *config.RuntimeConfig
 
 	for serviceName, service := range runtime.ResolvedServices {
 		helmStatus := serviceStatuses[serviceName]
-		
+
 		serviceStatus := &ServiceStatus{
-			Name:     serviceName,
-			Status:   helmStatus.Status,
-			Version:  service.Version,
-			IsLocal:  service.IsLocal,
-			Chart:    service.Chart.Name,
-			Updated:  helmStatus.Updated,
+			Name:    serviceName,
+			Status:  helmStatus.Status,
+			Version: service.Version,
+			IsLocal: service.IsLocal,
+			Chart:   service.Chart.FullName(),
+			Updated: helmStatus.Updated,
 		}
 
 		if service.IsLocal && service.LocalSource != nil {
@@ -204,6 +205,21 @@ func (o *Orchestrator) Status(ctx context.Context, runtime *config.RuntimeConfig
 
 		if len(service.Ports) > 0 {
 			serviceStatus.Ports = service.Ports
+		}
+
+		// Get pod status from Kubernetes if the service is deployed
+		if helmStatus.Status == "deployed" {
+			// Release name is simply the service name
+			if podStatus, err := tools.GetPodStatus(ctx, serviceName, helmStatus.Namespace); err == nil {
+				serviceStatus.Deployment = &DeploymentStatus{
+					Phase:          podStatus.Phase,
+					Ready:          podStatus.Ready,
+					PodsReady:      podStatus.PodsReady,
+					ContainerState: podStatus.ContainerState,
+					Reason:         podStatus.Reason,
+					Message:        podStatus.Message,
+				}
+			}
 		}
 
 		status.Services[serviceName] = serviceStatus
@@ -229,9 +245,9 @@ func (o *Orchestrator) ValidatePrerequisites(ctx context.Context) error {
 func (o *Orchestrator) printEnvironmentInfo(runtime *config.RuntimeConfig) {
 	fmt.Printf("\n🌐 Environment Access Information\n")
 	fmt.Printf("=================================\n")
-	
+
 	domain := runtime.Base.Defaults.Domain
-	
+
 	fmt.Printf("\nServices available at:\n")
 	for serviceName, service := range runtime.ResolvedServices {
 		if len(service.Ports) > 0 {
@@ -253,7 +269,7 @@ func (o *Orchestrator) printEnvironmentInfo(runtime *config.RuntimeConfig) {
 	fmt.Printf("  • plat status     - Check environment health\n")
 	fmt.Printf("  • plat down       - Stop services\n")
 	fmt.Printf("  • plat logs <svc> - View service logs\n")
-	
+
 	if runtime.Mode == config.ModeLocal {
 		fmt.Printf("\n📝 Local Development:\n")
 		for serviceName, service := range runtime.ResolvedServices {
@@ -263,7 +279,7 @@ func (o *Orchestrator) printEnvironmentInfo(runtime *config.RuntimeConfig) {
 		}
 		fmt.Printf("  Changes will be hot-reloaded automatically\n")
 	}
-	
+
 	fmt.Println()
 }
 
@@ -272,7 +288,7 @@ func (o *Orchestrator) printEnvironmentInfo(runtime *config.RuntimeConfig) {
 type EnvironmentStatus struct {
 	Name     string                    `json:"name"`
 	Mode     string                    `json:"mode"`
-	Cluster  *ClusterStatus           `json:"cluster"`
+	Cluster  *ClusterStatus            `json:"cluster"`
 	Services map[string]*ServiceStatus `json:"services"`
 }
 
@@ -286,11 +302,23 @@ type ClusterStatus struct {
 
 type ServiceStatus struct {
 	Name      string `json:"name"`
-	Status    string `json:"status"`
+	Status    string `json:"status"` // Helm status: deployed, pending-install, pending-upgrade, failed
 	Version   string `json:"version"`
 	IsLocal   bool   `json:"is_local"`
 	LocalPath string `json:"local_path,omitempty"`
 	Chart     string `json:"chart,omitempty"`
 	Ports     []int  `json:"ports,omitempty"`
 	Updated   string `json:"updated,omitempty"`
+
+	// Deployment details from Kubernetes
+	Deployment *DeploymentStatus `json:"deployment,omitempty"`
+}
+
+type DeploymentStatus struct {
+	Phase          string `json:"phase"`            // Pod phase: Pending, Running, Succeeded, Failed, Unknown
+	Ready          bool   `json:"ready"`            // All containers ready
+	PodsReady      string `json:"pods_ready"`       // e.g., "1/1", "0/1"
+	ContainerState string `json:"container_state"`  // running, waiting, terminated
+	Reason         string `json:"reason,omitempty"` // Reason for current state (e.g., ContainerCreating, CrashLoopBackOff)
+	Message        string `json:"message,omitempty"`
 }
