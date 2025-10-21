@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os/exec"
 	"strings"
 
@@ -33,8 +34,11 @@ func (m *Model) renderLogsView() string {
 func (m *Model) renderLogs() string {
 	var b strings.Builder
 
-	// Logs header
+	// Logs header with streaming indicator
 	title := sectionStyle.Render(fmt.Sprintf("📋 Logs: %s", m.logService))
+	if m.logStreaming {
+		title += " " + successStyle.Render("● streaming")
+	}
 	b.WriteString(title)
 	b.WriteString("\n")
 
@@ -71,7 +75,8 @@ func (m *Model) renderLogs() string {
 func (m *Model) handleLogsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, m.keys.Back), key.Matches(msg, m.keys.Logs):
-		// Go back to home (ESC or L key to toggle)
+		// Stop streaming and go back to home (ESC or L key to toggle)
+		m.stopLogStream()
 		m.view = HomeView
 		m.logs = nil
 		m.rawLogs = nil
@@ -80,6 +85,8 @@ func (m *Model) handleLogsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case key.Matches(msg, m.keys.Up):
 		if m.logsInitialized {
+			// Mark that user has scrolled
+			m.userScrolled = true
 			m.viewport.ScrollUp(1)
 		}
 		return m, nil
@@ -87,6 +94,10 @@ func (m *Model) handleLogsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Down):
 		if m.logsInitialized {
 			m.viewport.ScrollDown(1)
+			// Check if we're at the bottom after scrolling down
+			if m.viewport.AtBottom() {
+				m.userScrolled = false
+			}
 		}
 		return m, nil
 
@@ -126,6 +137,48 @@ func (m *Model) handleLogsMsg(msg logsMsg) (tea.Model, tea.Cmd) {
 	m.updateLogDisplay()
 	m.viewport.GotoBottom()
 
+	// Start streaming logs
+	cmd, reader, err := m.startLogStream(msg.service)
+	if err != nil {
+		// If streaming fails, just show the initial logs
+		m.error = err
+		return m, nil
+	}
+
+	m.logStreamCmd = cmd
+	m.logStreamReader = reader
+	m.logBufioReader = bufio.NewReader(reader)
+	m.logStreaming = true
+
+	// Start waiting for the first log line
+	return m, m.waitForLogLine()
+}
+
+func (m *Model) handleLogStreamMsg(msg logStreamMsg) (tea.Model, tea.Cmd) {
+	// Append new log line to raw logs
+	m.rawLogs = append(m.rawLogs, msg.line)
+
+	// Update the display with the new line
+	m.updateLogDisplay()
+
+	// Auto-scroll to bottom if user hasn't scrolled up
+	if !m.userScrolled {
+		m.viewport.GotoBottom()
+	}
+
+	// Wait for the next line
+	return m, m.waitForLogLine()
+}
+
+func (m *Model) handleLogStreamErrorMsg(msg logStreamErrorMsg) (tea.Model, tea.Cmd) {
+	// Stream ended or error occurred
+	m.stopLogStream()
+
+	// Only show error if it's not EOF (normal end of stream)
+	if msg.err != nil && msg.err != io.EOF {
+		m.error = msg.err
+	}
+
 	return m, nil
 }
 
@@ -133,7 +186,7 @@ func (m *Model) handleLogsMsg(msg logsMsg) (tea.Model, tea.Cmd) {
 
 func (m *Model) fetchLogs(serviceName string) tea.Cmd {
 	return func() tea.Msg {
-		// Build kubectl command to get logs
+		// Build kubectl command to get initial logs
 		namespace := m.runtime.Base.Defaults.Namespace
 		selector := fmt.Sprintf("app.kubernetes.io/instance=%s", serviceName)
 
@@ -176,6 +229,74 @@ func (m *Model) fetchLogs(serviceName string) tea.Cmd {
 			logs:    logs,
 		}
 	}
+}
+
+// startLogStream initializes the kubectl log stream process
+func (m *Model) startLogStream(serviceName string) (*exec.Cmd, io.ReadCloser, error) {
+	namespace := m.runtime.Base.Defaults.Namespace
+	selector := fmt.Sprintf("app.kubernetes.io/instance=%s", serviceName)
+
+	cmd := exec.Command("kubectl", "logs",
+		"-l", selector,
+		"-n", namespace,
+		"--follow",
+		"--timestamps")
+
+	// Get stdout pipe
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		return nil, nil, fmt.Errorf("failed to start log stream: %w", err)
+	}
+
+	return cmd, stdout, nil
+}
+
+// waitForLogLine reads a single line from the stream using the buffered reader
+func (m *Model) waitForLogLine() tea.Cmd {
+	return func() tea.Msg {
+		if m.logBufioReader == nil {
+			return logStreamErrorMsg{err: io.EOF}
+		}
+
+		// Read one line from the buffered reader
+		line, err := m.logBufioReader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				return logStreamErrorMsg{err: io.EOF}
+			}
+			return logStreamErrorMsg{err: err}
+		}
+
+		// Trim the newline character
+		if len(line) > 0 && line[len(line)-1] == '\n' {
+			line = line[:len(line)-1]
+		}
+		// Also trim carriage return if present (for Windows line endings)
+		if len(line) > 0 && line[len(line)-1] == '\r' {
+			line = line[:len(line)-1]
+		}
+
+		return logStreamMsg{line: line}
+	}
+}
+
+// stopLogStream stops the running log stream
+func (m *Model) stopLogStream() {
+	if m.logStreamCmd != nil && m.logStreamCmd.Process != nil {
+		m.logStreamCmd.Process.Kill()
+		m.logStreamCmd = nil
+	}
+	if m.logStreamReader != nil {
+		m.logStreamReader.Close()
+		m.logStreamReader = nil
+	}
+	m.logBufioReader = nil
+	m.logStreaming = false
 }
 
 // updateLogDisplay reprocesses raw logs based on toggle states

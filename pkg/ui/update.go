@@ -66,6 +66,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case logsMsg:
 		return m.handleLogsMsg(msg)
+
+	case logStreamMsg:
+		return m.handleLogStreamMsg(msg)
+
+	case logStreamErrorMsg:
+		return m.handleLogStreamErrorMsg(msg)
 	}
 
 	return m, nil

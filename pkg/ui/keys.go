@@ -131,6 +131,8 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Global keys (work in all views)
 	switch {
 	case key.Matches(msg, m.keys.Quit):
+		// Clean up streaming before quitting
+		m.stopLogStream()
 		return m, tea.Quit
 
 	case key.Matches(msg, m.keys.Help):

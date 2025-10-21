@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"bufio"
+	"io"
+	"os/exec"
 	"time"
 
 	"github.com/charmbracelet/bubbles/help"
@@ -37,12 +40,17 @@ type Model struct {
 	viewport viewport.Model
 
 	// Log viewer state
-	logService      string
-	logs            []string
-	rawLogs         []string // Original logs before filtering
-	logsInitialized bool
-	showTimestamps  bool
-	showPodNames    bool
+	logService       string
+	logs             []string
+	rawLogs          []string // Original logs before filtering
+	logsInitialized  bool
+	showTimestamps   bool
+	showPodNames     bool
+	logStreaming     bool          // Whether logs are actively streaming
+	userScrolled     bool          // Whether user has scrolled away from bottom
+	logStreamCmd     *exec.Cmd     // The running kubectl logs command
+	logStreamReader  io.ReadCloser // The stdout reader for the stream
+	logBufioReader   *bufio.Reader // Buffered reader for efficient line reading
 
 	// Dimensions
 	width  int

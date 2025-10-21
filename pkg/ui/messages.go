@@ -20,11 +20,21 @@ type actionCompleteMsg struct {
 	err     error
 }
 
-// logsMsg is sent when logs are fetched for a service
+// logsMsg is sent when logs are fetched for a service (initial load)
 type logsMsg struct {
 	service string
 	logs    []string
 	err     error
+}
+
+// logStreamMsg is sent when a new log line arrives from the stream
+type logStreamMsg struct {
+	line string
+}
+
+// logStreamErrorMsg is sent when the log stream encounters an error
+type logStreamErrorMsg struct {
+	err error
 }
 
 // tickMsg is sent periodically for auto-refresh
