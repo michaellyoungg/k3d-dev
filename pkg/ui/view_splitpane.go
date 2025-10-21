@@ -62,10 +62,21 @@ func (m *Model) formatNavItem(item NavItem) string {
 			icon := getStatusIcon(svc.Status)
 			name := icon + " " + item.Name
 
-			// Add pod readiness if available
+			// Add pod readiness if available (right-aligned)
 			if svcStatus, ok := svc.StatusDetail.(*orchestrator.ServiceStatus); ok && svcStatus != nil {
 				if svcStatus.Deployment != nil {
-					name += " " + dimStyle.Render(svcStatus.Deployment.PodsReady)
+					podsReady := svcStatus.Deployment.PodsReady
+					// Calculate padding to right-align (account for nav width, padding, icon, space)
+					nameLen := lipgloss.Width(name)
+					podsLen := lipgloss.Width(podsReady)
+					availableWidth := navPanelWidth - 2 - 2 // width - borders - padding
+					padding := availableWidth - nameLen - podsLen
+					if padding > 0 {
+						name += strings.Repeat(" ", padding) + dimStyle.Render(podsReady)
+					} else {
+						// If not enough space, just append with single space
+						name += " " + dimStyle.Render(podsReady)
+					}
 				}
 			}
 
