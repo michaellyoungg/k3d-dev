@@ -61,6 +61,16 @@ func (m *Model) renderLogs() string {
 	// Show viewport if logs are loaded
 	if m.logsInitialized && len(m.logs) > 0 {
 		b.WriteString(m.viewport.View())
+
+		// Show indicator if user is scrolled and there are unseen logs
+		if m.userScrolled && m.unseenLogCount > 0 {
+			b.WriteString("\n")
+			indicator := fmt.Sprintf("↓ %d new line", m.unseenLogCount)
+			if m.unseenLogCount > 1 {
+				indicator = fmt.Sprintf("↓ %d new lines", m.unseenLogCount)
+			}
+			b.WriteString(activeStyle.Render(indicator + " (scroll down to see)"))
+		}
 	} else if len(m.logs) == 0 {
 		b.WriteString(dimStyle.Render("No logs available"))
 	} else {
@@ -81,6 +91,7 @@ func (m *Model) handleLogsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.logs = nil
 		m.rawLogs = nil
 		m.logsInitialized = false
+		m.unseenLogCount = 0
 		return m, nil
 
 	case key.Matches(msg, m.keys.Up):
@@ -97,6 +108,7 @@ func (m *Model) handleLogsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			// Check if we're at the bottom after scrolling down
 			if m.viewport.AtBottom() {
 				m.userScrolled = false
+				m.unseenLogCount = 0 // Reset unseen count when back at bottom
 			}
 		}
 		return m, nil
@@ -126,6 +138,8 @@ func (m *Model) handleLogsMsg(msg logsMsg) (tea.Model, tea.Cmd) {
 
 	m.rawLogs = msg.logs // Store original logs
 	m.logService = msg.service
+	m.unseenLogCount = 0   // Reset counter for new log view
+	m.userScrolled = false // Start at bottom, not scrolled
 
 	// Initialize viewport if not done
 	if !m.logsInitialized {
@@ -135,6 +149,7 @@ func (m *Model) handleLogsMsg(msg logsMsg) (tea.Model, tea.Cmd) {
 
 	// Apply filtering based on current toggle states
 	m.updateLogDisplay()
+
 	m.viewport.GotoBottom()
 
 	// Start streaming logs
@@ -164,6 +179,9 @@ func (m *Model) handleLogStreamMsg(msg logStreamMsg) (tea.Model, tea.Cmd) {
 	// Auto-scroll to bottom if user hasn't scrolled up
 	if !m.userScrolled {
 		m.viewport.GotoBottom()
+	} else {
+		// Increment unseen log counter when user has scrolled up
+		m.unseenLogCount++
 	}
 
 	// Wait for the next line

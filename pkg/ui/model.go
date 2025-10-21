@@ -48,6 +48,7 @@ type Model struct {
 	showPodNames     bool
 	logStreaming     bool          // Whether logs are actively streaming
 	userScrolled     bool          // Whether user has scrolled away from bottom
+	unseenLogCount   int           // Number of new logs arrived while user is scrolled up
 	logStreamCmd     *exec.Cmd     // The running kubectl logs command
 	logStreamReader  io.ReadCloser // The stdout reader for the stream
 	logBufioReader   *bufio.Reader // Buffered reader for efficient line reading
