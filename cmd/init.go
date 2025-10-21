@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"plat/pkg/config"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
+	"plat/pkg/config"
 )
 
 var initCmd = &cobra.Command{
@@ -34,7 +34,7 @@ Templates:
 		template, _ := cmd.Flags().GetString("template")
 		force, _ := cmd.Flags().GetBool("force")
 		scanLocal, _ := cmd.Flags().GetBool("scan-local")
-		
+
 		return initializeEnvironment(projectName, template, force, scanLocal)
 	},
 }
@@ -56,11 +56,11 @@ func initializeEnvironment(projectName, template string, force, scanLocal bool) 
 	// Create base configuration
 	baseConfig := createBaseConfig(projectName, template)
 	configPath := filepath.Join(platDir, "config.yml")
-	
+
 	if err := writeYAMLFile(configPath, baseConfig); err != nil {
 		return fmt.Errorf("failed to write config.yml: %w", err)
 	}
-	
+
 	printSuccess("Created config.yml with MSC defaults")
 
 	// Create local configuration (empty initially)
@@ -82,7 +82,7 @@ func initializeEnvironment(projectName, template string, force, scanLocal bool) 
 	if err := writeYAMLFile(localPath, localConfig); err != nil {
 		return fmt.Errorf("failed to write local.yml: %w", err)
 	}
-	
+
 	printSuccess("Created local.yml for local source declarations")
 
 	// Create .gitignore for .plat directory
@@ -92,7 +92,7 @@ func initializeEnvironment(projectName, template string, force, scanLocal bool) 
 
 	// Print usage instructions
 	printInitializationComplete(projectName, template)
-	
+
 	return nil
 }
 
@@ -110,7 +110,7 @@ func createBaseConfig(projectName, template string) interface{} {
 			"chart":     "microservice",
 		},
 	}
-	
+
 	// Add services based on template
 	var services []interface{}
 	switch template {
@@ -156,14 +156,14 @@ func createBaseConfig(projectName, template string) interface{} {
 			},
 		}
 	}
-	
+
 	baseConfig["services"] = services
 	return baseConfig
 }
 
 func scanForLocalSources() map[string]config.LocalSource {
 	sources := make(map[string]config.LocalSource)
-	
+
 	// Look for common patterns in parent directory
 	parentDir := ".."
 	entries, err := os.ReadDir(parentDir)
@@ -177,33 +177,33 @@ func scanForLocalSources() map[string]config.LocalSource {
 		}
 
 		entryPath := filepath.Join(parentDir, entry.Name())
-		
+
 		// Check if it looks like a service repository
 		if isServiceRepository(entryPath) {
 			serviceName := entry.Name()
 			sources[serviceName] = config.LocalSource{
 				Path: entryPath,
 			}
-			
+
 			if verbose {
 				fmt.Printf("  Found: %s\n", entryPath)
 			}
 		}
 	}
-	
+
 	return sources
 }
 
 func isServiceRepository(path string) bool {
 	// Check for common service repository indicators
 	indicators := []string{"Dockerfile", "package.json", "pom.xml", "go.mod", "requirements.txt"}
-	
+
 	for _, indicator := range indicators {
 		if _, err := os.Stat(filepath.Join(path, indicator)); err == nil {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -214,18 +214,18 @@ func createPlatGitignore(_ string) error {
 `
 
 	gitignorePath := ".gitignore"
-	
+
 	// Check if .gitignore exists
 	var existingContent []byte
 	if content, err := os.ReadFile(gitignorePath); err == nil {
 		existingContent = content
-		
+
 		// Check if plat entries already exist
 		if filepath.Base(string(existingContent)) != "" {
 			existingContent = append(existingContent, '\n')
 		}
 	}
-	
+
 	// Append plat-specific entries
 	newContent := append(existingContent, []byte(gitignoreContent)...)
 	return os.WriteFile(gitignorePath, newContent, 0644)
@@ -248,7 +248,7 @@ func printInitializationComplete(projectName, template string) {
 	fmt.Printf("Template: %s\n", template)
 	fmt.Printf("Configuration: .plat/config.yml\n")
 	fmt.Printf("Local sources: .plat/local.yml\n\n")
-	
+
 	fmt.Println("Next steps:")
 	fmt.Println("1. Review and customize .plat/config.yml")
 	fmt.Println("2. Declare local sources in .plat/local.yml")
@@ -259,7 +259,7 @@ func printInitializationComplete(projectName, template string) {
 
 func init() {
 	rootCmd.AddCommand(initCmd)
-	
+
 	initCmd.Flags().StringP("template", "t", "microservices", "Project template: microservices, fullstack, backend-only")
 	initCmd.Flags().BoolP("force", "f", false, "Overwrite existing .plat configuration")
 	initCmd.Flags().Bool("scan-local", false, "Automatically scan for local repositories")

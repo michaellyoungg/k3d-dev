@@ -49,8 +49,8 @@ func GetPodStatus(ctx context.Context, releaseName, namespace string) (*PodStatu
 					Name  string `json:"name"`
 					Ready bool   `json:"ready"`
 					State struct {
-						Running    *struct{} `json:"running"`
-						Waiting    *struct {
+						Running *struct{} `json:"running"`
+						Waiting *struct {
 							Reason  string `json:"reason"`
 							Message string `json:"message"`
 						} `json:"waiting"`

@@ -81,7 +81,7 @@ func (m *Model) formatNavItem(item NavItem) string {
 // navItemStyle returns the style for a navigation item
 func (m *Model) navItemStyle(isSelected bool) lipgloss.Style {
 	style := lipgloss.NewStyle().
-		Width(navPanelWidth - 2).
+		Width(navPanelWidth-2).
 		Padding(0, 1)
 
 	if isSelected {
@@ -114,8 +114,8 @@ func (m *Model) renderDetailPanel() string {
 
 	// Style the detail panel
 	detailStyle := lipgloss.NewStyle().
-		Width(m.width - navPanelWidth - 4). // Account for borders and padding
-		Height(m.height - 8).                // Account for header and footer
+		Width(m.width-navPanelWidth-4). // Account for borders and padding
+		Height(m.height-8).             // Account for header and footer
 		Padding(1, 2)
 
 	return detailStyle.Render(content)

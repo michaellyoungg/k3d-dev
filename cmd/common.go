@@ -59,7 +59,7 @@ func confirmAction(message string) bool {
 	fmt.Printf("%s [y/N]: ", message)
 	var response string
 	fmt.Scanln(&response)
-	
+
 	return response == "y" || response == "Y" || response == "yes" || response == "Yes"
 }
 

@@ -13,7 +13,7 @@ import (
 // DefaultConfigPaths are the standard locations to look for config files
 var DefaultConfigPaths = []string{
 	".plat/config.yml",
-	".plat/config.yaml", 
+	".plat/config.yaml",
 }
 
 // Loader handles configuration loading and merging
@@ -111,8 +111,8 @@ func (l *Loader) findConfigFile() (string, error) {
 			return path, nil
 		}
 	}
-	
-	return "", fmt.Errorf("no config file found in standard locations: %s", 
+
+	return "", fmt.Errorf("no config file found in standard locations: %s",
 		strings.Join(DefaultConfigPaths, ", "))
 }
 
@@ -183,7 +183,7 @@ func (l *Loader) loadLocalConfig(configDir string) (*LocalConfig, error) {
 func (l *Loader) resolveServices(runtime *RuntimeConfig) error {
 	for _, service := range runtime.Base.Services {
 		serviceName := service.GetName()
-		
+
 		resolved := &ResolvedService{
 			Name:         serviceName,
 			Version:      service.GetVersion(),

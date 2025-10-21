@@ -13,9 +13,9 @@ import (
 
 // ServiceOrchestrator manages service deployment and lifecycle
 type ServiceOrchestrator struct {
-	helmProvider   tools.HelmProvider
-	valuesManager  *config.ValuesManager
-	verbose        bool
+	helmProvider  tools.HelmProvider
+	valuesManager *config.ValuesManager
+	verbose       bool
 }
 
 // NewServiceOrchestrator creates a new service orchestrator
@@ -231,7 +231,7 @@ func (so *ServiceOrchestrator) GetServiceStatuses(ctx context.Context, runtime *
 
 	for serviceName := range runtime.ResolvedServices {
 		releaseName := so.getReleaseName(serviceName, runtime)
-		
+
 		status, err := so.helmProvider.GetReleaseStatus(ctx, releaseName, namespace)
 		if err != nil {
 			// Service not deployed - create a placeholder status
@@ -241,7 +241,7 @@ func (so *ServiceOrchestrator) GetServiceStatuses(ctx context.Context, runtime *
 				Status:    "not-deployed",
 			}
 		}
-		
+
 		statuses[serviceName] = status
 	}
 
@@ -302,12 +302,12 @@ func (so *ServiceOrchestrator) deployService(ctx context.Context, service *confi
 
 	// Create Helm release configuration
 	release := tools.HelmRelease{
-		Name:      so.getReleaseName(service.Name, runtime),
-		Chart:     service.Chart.Name,
-		Version:   service.Chart.Version,
+		Name:       so.getReleaseName(service.Name, runtime),
+		Chart:      service.Chart.Name,
+		Version:    service.Chart.Version,
 		Repository: service.Chart.Repository,
-		Namespace: runtime.Base.Defaults.Namespace,
-		Values:    values,
+		Namespace:  runtime.Base.Defaults.Namespace,
+		Values:     values,
 	}
 
 	// Add values file if specified
@@ -456,20 +456,20 @@ func (so *ServiceOrchestrator) getReleaseName(serviceName string, _ *config.Runt
 // filterPlatReleases filters releases to only those managed by this plat environment
 func (so *ServiceOrchestrator) filterPlatReleases(releases []tools.ReleaseInfo, runtime *config.RuntimeConfig) []tools.ReleaseInfo {
 	var platReleases []tools.ReleaseInfo
-	
+
 	// Create a set of expected service names
 	expectedServices := make(map[string]bool)
 	for serviceName := range runtime.ResolvedServices {
 		expectedServices[serviceName] = true
 		expectedServices[so.getReleaseName(serviceName, runtime)] = true
 	}
-	
+
 	for _, release := range releases {
 		if expectedServices[release.Name] {
 			platReleases = append(platReleases, release)
 		}
 	}
-	
+
 	return platReleases
 }
 

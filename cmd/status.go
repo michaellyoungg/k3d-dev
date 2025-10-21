@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"plat/pkg/orchestrator"
 	"github.com/spf13/cobra"
+	"plat/pkg/orchestrator"
 )
 
 var statusCmd = &cobra.Command{
@@ -34,7 +34,7 @@ Shows information about:
 
 		// Create orchestrator and get status
 		orch := orchestrator.NewOrchestrator(verbose)
-		
+
 		status, err := orch.Status(ctx, runtime)
 		if err != nil {
 			return fmt.Errorf("failed to get environment status: %w", err)
@@ -62,7 +62,7 @@ func displayEnvironmentStatus(status *orchestrator.EnvironmentStatus, detailed b
 			fmt.Printf(" (%s)", status.Cluster.Name)
 		}
 		fmt.Println()
-		
+
 		if status.Cluster.Servers > 0 || status.Cluster.Agents > 0 {
 			fmt.Printf("   Nodes: %d servers, %d agents\n", status.Cluster.Servers, status.Cluster.Agents)
 		}
@@ -70,7 +70,7 @@ func displayEnvironmentStatus(status *orchestrator.EnvironmentStatus, detailed b
 
 	// Services status
 	fmt.Printf("\n📦 Services (%s mode)\n", status.Mode)
-	
+
 	if len(status.Services) == 0 {
 		fmt.Println("   No services configured")
 		return
@@ -79,15 +79,15 @@ func displayEnvironmentStatus(status *orchestrator.EnvironmentStatus, detailed b
 	for serviceName, service := range status.Services {
 		statusIcon := getStatusIcon(service.Status)
 		fmt.Printf("   %s %s", statusIcon, serviceName)
-		
+
 		if service.Version != "" {
 			fmt.Printf(" (%s)", service.Version)
 		}
-		
+
 		if service.IsLocal && service.LocalPath != "" {
 			fmt.Printf(" 🔧 local")
 		}
-		
+
 		if service.Status != "deployed" && service.Status != "not-deployed" {
 			fmt.Printf(" [%s]", service.Status)
 		}
@@ -198,6 +198,6 @@ func getLocalDevServices(services map[string]*orchestrator.ServiceStatus) []stri
 
 func init() {
 	rootCmd.AddCommand(statusCmd)
-	
+
 	statusCmd.Flags().Bool("detailed", false, "Show detailed status information")
 }

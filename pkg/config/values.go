@@ -71,7 +71,7 @@ func (vm *ValuesManager) getChartDefaults(chartName string) (map[string]interfac
 				"port": 80,
 			},
 			"ingress": map[string]interface{}{
-				"enabled": true,
+				"enabled":   true,
 				"className": "nginx",
 			},
 			"resources": map[string]interface{}{

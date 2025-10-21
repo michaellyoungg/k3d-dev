@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"plat/pkg/config"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
+	"plat/pkg/config"
 )
 
 var configCmd = &cobra.Command{
@@ -36,17 +36,17 @@ var configShowCmd = &cobra.Command{
 
 		fmt.Printf("📋 Environment Configuration\n")
 		fmt.Printf("==========================\n\n")
-		
+
 		fmt.Printf("Name: %s\n", runtime.Base.Name)
 		fmt.Printf("Mode: %s\n", runtime.Mode)
 		fmt.Printf("Registry: %s\n", runtime.Base.Defaults.Registry)
 		fmt.Printf("Domain: %s\n", runtime.Base.Defaults.Domain)
 		fmt.Printf("Namespace: %s\n", runtime.Base.Defaults.Namespace)
 		fmt.Printf("Services: %d\n", len(runtime.ResolvedServices))
-		
+
 		fmt.Printf("\n🔧 Service Configuration\n")
 		fmt.Printf("========================\n")
-		
+
 		for name, service := range runtime.ResolvedServices {
 			fmt.Printf("\n%s:\n", name)
 			if service.IsLocal {
@@ -56,7 +56,7 @@ var configShowCmd = &cobra.Command{
 				fmt.Printf("  Source: Registry\n")
 				fmt.Printf("  Version: %s\n", service.Version)
 			}
-			
+
 			if service.Chart.Name != "" {
 				fmt.Printf("  Chart: %s", service.Chart.Name)
 				if service.Chart.Repository != "" {
@@ -64,15 +64,15 @@ var configShowCmd = &cobra.Command{
 				}
 				fmt.Printf("\n")
 			}
-			
+
 			if len(service.Ports) > 0 {
 				fmt.Printf("  Ports: %v\n", service.Ports)
 			}
-			
+
 			if len(service.Environment) > 0 {
 				fmt.Printf("  Environment: %d variables\n", len(service.Environment))
 			}
-			
+
 			if len(service.Dependencies) > 0 {
 				fmt.Printf("  Dependencies: %v\n", service.Dependencies)
 			}
@@ -95,26 +95,26 @@ Performs comprehensive validation including:
 • Helm values validation`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("🔍 Validating configuration...")
-		
+
 		runtime, err := loadConfiguration()
 		if err != nil {
 			fmt.Printf("❌ Configuration validation failed:\n%v\n", err)
 			return err
 		}
-		
+
 		// Use values manager for additional validation
 		valuesManager := config.NewValuesManager(".plat")
 		report := valuesManager.GetValidationReport(runtime)
-		
+
 		if len(report) == 0 {
 			fmt.Println("✅ Configuration is valid!")
-			
+
 			fmt.Printf("\nSummary:\n")
 			fmt.Printf("  Services: %d\n", len(runtime.ResolvedServices))
-			
+
 			localCount := 0
 			artifactCount := 0
-			
+
 			for _, service := range runtime.ResolvedServices {
 				if service.IsLocal {
 					localCount++
@@ -122,7 +122,7 @@ Performs comprehensive validation including:
 					artifactCount++
 				}
 			}
-			
+
 			fmt.Printf("  Local: %d, Artifact: %d\n", localCount, artifactCount)
 			fmt.Printf("  Mode: %s\n", runtime.Mode)
 		} else {
@@ -134,7 +134,7 @@ Performs comprehensive validation including:
 				}
 			}
 		}
-		
+
 		return nil
 	},
 }
@@ -152,11 +152,11 @@ Available settings:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		key := args[0]
 		value := args[1]
-		
+
 		// TODO: Implement persistent config storage
 		fmt.Printf("Setting %s = %s\n", key, value)
 		fmt.Println("(Persistent configuration storage not yet implemented)")
-		
+
 		return nil
 	},
 }
@@ -173,23 +173,23 @@ The example includes:
 • Local source declarations`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		example := createExampleConfig()
-		
+
 		data, err := yaml.Marshal(example)
 		if err != nil {
 			return fmt.Errorf("failed to generate example: %w", err)
 		}
-		
+
 		fmt.Printf("# Example Plat Configuration\n")
 		fmt.Printf("# Save this as .plat/config.yml in your project\n\n")
 		fmt.Print(string(data))
-		
+
 		fmt.Printf("\n\n# Example Local Sources\n")
 		fmt.Printf("# Save this as .plat/local.yml (gitignored)\n\n")
-		
+
 		localExample := map[string]interface{}{
 			"local_sources": map[string]interface{}{
-				"frontend":     "../frontend-app",
-				"user-api":     "../user-service",
+				"frontend": "../frontend-app",
+				"user-api": "../user-service",
 				"payment-api": map[string]interface{}{
 					"path":       "~/dev/payments-monorepo",
 					"dockerfile": "services/api/Dockerfile",
@@ -198,10 +198,10 @@ The example includes:
 				},
 			},
 		}
-		
+
 		localData, _ := yaml.Marshal(localExample)
 		fmt.Print(string(localData))
-		
+
 		return nil
 	},
 }

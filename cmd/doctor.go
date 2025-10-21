@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"plat/pkg/tools"
 	"github.com/spf13/cobra"
+	"plat/pkg/tools"
 )
 
 var doctorCmd = &cobra.Command{
@@ -20,10 +20,10 @@ This command checks:
 - System resources`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
-		
+
 		fmt.Println("🔍 Diagnosing system health...")
 		fmt.Println()
-		
+
 		// Check k3d
 		fmt.Print("Checking k3d... ")
 		if err := tools.ValidateK3d(ctx); err != nil {
@@ -31,7 +31,7 @@ This command checks:
 		} else {
 			fmt.Println("✅")
 		}
-		
+
 		// Check helm
 		fmt.Print("Checking helm... ")
 		if err := tools.ValidateCommand("helm"); err != nil {
@@ -43,9 +43,9 @@ This command checks:
 				fmt.Println("✅ Available")
 			}
 		}
-		
+
 		// Terraform removed from toolchain - k3d + Helm only
-		
+
 		// Check docker
 		fmt.Print("Checking docker... ")
 		if err := tools.ValidateCommand("docker"); err != nil {
@@ -60,12 +60,12 @@ This command checks:
 				fmt.Printf("✅ Docker daemon running (v%s)\n", result.Stdout)
 			}
 		}
-		
+
 		fmt.Println()
 		fmt.Println("💡 Install missing tools:")
 		fmt.Println("  k3d: https://k3d.io/stable/#installation")
 		fmt.Println("  helm: https://helm.sh/docs/intro/install/")
-		
+
 		return nil
 	},
 }

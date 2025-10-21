@@ -32,7 +32,7 @@ func (e ValidationErrors) Error() string {
 	if len(e) == 1 {
 		return e[0].Error()
 	}
-	
+
 	var sb strings.Builder
 	sb.WriteString("multiple validation errors:\n")
 	for i, err := range e {
@@ -111,7 +111,7 @@ func (cv *ConfigValidator) ValidateBaseConfig(config *BaseConfig) error {
 		serviceNames := make(map[string]bool)
 		for i, service := range config.Services {
 			serviceName := service.GetName()
-			
+
 			// Check for duplicate service names
 			if serviceNames[serviceName] {
 				errors = append(errors, ValidationError{
@@ -485,10 +485,10 @@ func (cv *ConfigValidator) isValidVersionTag(version string) bool {
 	// Allow semantic versions, git hashes, and common patterns
 	patterns := []string{
 		`^v?\d+\.\d+\.\d+(-[a-zA-Z0-9]+)*$`,  // v1.2.3, 1.2.3-beta
-		`^[a-f0-9]{7,40}$`,                     // git hash
-		`^(latest|main|master|dev|develop)$`,   // common tags
+		`^[a-f0-9]{7,40}$`,                   // git hash
+		`^(latest|main|master|dev|develop)$`, // common tags
 	}
-	
+
 	for _, pattern := range patterns {
 		if matched, _ := regexp.MatchString(pattern, version); matched {
 			return true
@@ -520,7 +520,7 @@ func (cv *ConfigValidator) isValidDomain(domain string) bool {
 func (cv *ConfigValidator) isPotentiallySensitive(key, value string) bool {
 	sensitiveKeys := []string{"password", "secret", "key", "token", "credential"}
 	keyLower := strings.ToLower(key)
-	
+
 	for _, sensitive := range sensitiveKeys {
 		if strings.Contains(keyLower, sensitive) {
 			return true

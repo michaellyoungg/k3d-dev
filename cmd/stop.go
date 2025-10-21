@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"plat/pkg/orchestrator"
 	"github.com/spf13/cobra"
+	"plat/pkg/orchestrator"
 )
 
 var downCmd = &cobra.Command{
@@ -42,7 +42,7 @@ Examples:
 			if deleteCluster {
 				message = "Stop all services and delete cluster"
 			}
-			
+
 			if !confirmAction(message + "?") {
 				fmt.Println("Operation cancelled")
 				return nil
@@ -51,7 +51,7 @@ Examples:
 
 		// Create orchestrator and stop environment
 		orch := orchestrator.NewOrchestrator(verbose)
-		
+
 		if err := orch.Down(ctx, runtime, deleteCluster); err != nil {
 			return fmt.Errorf("environment shutdown failed: %w", err)
 		}
@@ -75,10 +75,10 @@ var stopCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(downCmd)
 	rootCmd.AddCommand(stopCmd) // Legacy alias
-	
+
 	downCmd.Flags().Bool("cluster", false, "Also delete the k3d cluster")
 	downCmd.Flags().Bool("confirm", false, "Skip confirmation prompt")
-	
+
 	// Legacy flags for stop command
 	stopCmd.Flags().Bool("cluster", false, "Also delete the k3d cluster")
 	stopCmd.Flags().Bool("confirm", false, "Skip confirmation prompt")

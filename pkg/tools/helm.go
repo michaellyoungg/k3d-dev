@@ -49,21 +49,21 @@ func (h *HelmClient) InstallChart(ctx context.Context, release HelmRelease) erro
 
 	// Add chart reference
 	args = append(args, chartRef)
-	
+
 	// Add version if specified
 	if release.Version != "" {
 		args = append(args, "--version", release.Version)
 	}
-	
+
 	// Add namespace
 	args = append(args, "--namespace", release.Namespace)
 	args = append(args, "--create-namespace")
-	
+
 	// Add values files
 	for _, valuesFile := range release.ValuesFiles {
 		args = append(args, "--values", valuesFile)
 	}
-	
+
 	// Add inline values
 	if len(release.Values) > 0 {
 		valuesFile, err := h.createTempValuesFile(release.Values)
@@ -71,39 +71,39 @@ func (h *HelmClient) InstallChart(ctx context.Context, release HelmRelease) erro
 			return fmt.Errorf("failed to create temporary values file: %w", err)
 		}
 		defer os.Remove(valuesFile)
-		
+
 		args = append(args, "--values", valuesFile)
 	}
-	
+
 	// Add common options for better UX
 	args = append(args, "--wait", "--timeout", "300s")
-	
+
 	cmd := Command{
 		Name: "helm",
 		Args: args,
 	}
-	
+
 	result, err := h.executor.Execute(ctx, cmd)
 	if err != nil {
 		return fmt.Errorf("helm install failed (exit code %d): %s", result.ExitCode, result.Stderr)
 	}
-	
+
 	return nil
 }
 
 // UninstallChart removes a Helm release
 func (h *HelmClient) UninstallChart(ctx context.Context, releaseName, namespace string) error {
 	args := []string{"uninstall", releaseName}
-	
+
 	if namespace != "" {
 		args = append(args, "--namespace", namespace)
 	}
-	
+
 	cmd := Command{
 		Name: "helm",
 		Args: args,
 	}
-	
+
 	result, err := h.executor.Execute(ctx, cmd)
 	if err != nil {
 		// Check if release doesn't exist (not an error for our use case)
@@ -112,23 +112,23 @@ func (h *HelmClient) UninstallChart(ctx context.Context, releaseName, namespace 
 		}
 		return fmt.Errorf("helm uninstall failed: %s", result.Stderr)
 	}
-	
+
 	return nil
 }
 
 // GetReleaseStatus returns status of a Helm release
 func (h *HelmClient) GetReleaseStatus(ctx context.Context, releaseName, namespace string) (*ReleaseStatus, error) {
 	args := []string{"status", releaseName, "--output", "json"}
-	
+
 	if namespace != "" {
 		args = append(args, "--namespace", namespace)
 	}
-	
+
 	cmd := Command{
 		Name: "helm",
 		Args: args,
 	}
-	
+
 	result, err := h.executor.Execute(ctx, cmd)
 	if err != nil {
 		if strings.Contains(result.Stderr, "not found") {
@@ -136,18 +136,18 @@ func (h *HelmClient) GetReleaseStatus(ctx context.Context, releaseName, namespac
 		}
 		return nil, fmt.Errorf("failed to get helm status: %s", result.Stderr)
 	}
-	
+
 	var helmStatus map[string]any
 	if err := json.Unmarshal([]byte(result.Stdout), &helmStatus); err != nil {
 		return nil, fmt.Errorf("failed to parse helm status output: %w", err)
 	}
-	
+
 	status := &ReleaseStatus{
 		Name:      releaseName,
 		Namespace: namespace,
 		Status:    "unknown",
 	}
-	
+
 	// Extract status information
 	if info, ok := helmStatus["info"].(map[string]any); ok {
 		if statusInfo, ok := info["status"].(string); ok {
@@ -157,7 +157,7 @@ func (h *HelmClient) GetReleaseStatus(ctx context.Context, releaseName, namespac
 			status.Updated = lastDeployed
 		}
 	}
-	
+
 	// Extract chart information
 	if chart, ok := helmStatus["chart"].(map[string]any); ok {
 		if metadata, ok := chart["metadata"].(map[string]any); ok {
@@ -173,42 +173,42 @@ func (h *HelmClient) GetReleaseStatus(ctx context.Context, releaseName, namespac
 			}
 		}
 	}
-	
+
 	return status, nil
 }
 
 // ListReleases returns all releases in namespace
 func (h *HelmClient) ListReleases(ctx context.Context, namespace string) ([]ReleaseInfo, error) {
 	args := []string{"list", "--output", "json"}
-	
+
 	if namespace != "" {
 		args = append(args, "--namespace", namespace)
 	} else {
 		args = append(args, "--all-namespaces")
 	}
-	
+
 	cmd := Command{
 		Name: "helm",
 		Args: args,
 	}
-	
+
 	result, err := h.executor.Execute(ctx, cmd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list helm releases: %s", result.Stderr)
 	}
-	
+
 	var helmReleases []map[string]any
 	if err := json.Unmarshal([]byte(result.Stdout), &helmReleases); err != nil {
 		return nil, fmt.Errorf("failed to parse helm list output: %w", err)
 	}
-	
+
 	releases := make([]ReleaseInfo, 0, len(helmReleases))
-	
+
 	for _, release := range helmReleases {
 		info := ReleaseInfo{
 			Status: "unknown",
 		}
-		
+
 		if name, ok := release["name"].(string); ok {
 			info.Name = name
 		}
@@ -221,10 +221,10 @@ func (h *HelmClient) ListReleases(ctx context.Context, namespace string) ([]Rele
 		if chart, ok := release["chart"].(string); ok {
 			info.Chart = chart
 		}
-		
+
 		releases = append(releases, info)
 	}
-	
+
 	return releases, nil
 }
 
@@ -236,29 +236,29 @@ func (h *HelmClient) addRepository(ctx context.Context, name, url string) error 
 	} else if exists {
 		return nil // Repository already exists
 	}
-	
+
 	cmd := Command{
 		Name: "helm",
 		Args: []string{"repo", "add", name, url},
 	}
-	
+
 	result, err := h.executor.Execute(ctx, cmd)
 	if err != nil {
 		return fmt.Errorf("failed to add repository %s: %s", name, result.Stderr)
 	}
-	
+
 	// Update repository index
 	updateCmd := Command{
 		Name: "helm",
 		Args: []string{"repo", "update"},
 	}
-	
+
 	_, err = h.executor.Execute(ctx, updateCmd)
 	if err != nil {
 		// Non-fatal error - continue
 		fmt.Printf("Warning: failed to update helm repositories: %v\n", err)
 	}
-	
+
 	return nil
 }
 
@@ -268,7 +268,7 @@ func (h *HelmClient) repositoryExists(ctx context.Context, name string) (bool, e
 		Name: "helm",
 		Args: []string{"repo", "list", "--output", "json"},
 	}
-	
+
 	result, err := h.executor.Execute(ctx, cmd)
 	if err != nil {
 		// If no repositories exist, helm returns exit code 1
@@ -277,18 +277,18 @@ func (h *HelmClient) repositoryExists(ctx context.Context, name string) (bool, e
 		}
 		return false, fmt.Errorf("failed to list repositories: %s", result.Stderr)
 	}
-	
+
 	var repos []map[string]any
 	if err := json.Unmarshal([]byte(result.Stdout), &repos); err != nil {
 		return false, fmt.Errorf("failed to parse repository list: %w", err)
 	}
-	
+
 	for _, repo := range repos {
 		if repoName, ok := repo["name"].(string); ok && repoName == name {
 			return true, nil
 		}
 	}
-	
+
 	return false, nil
 }
 
@@ -319,12 +319,12 @@ func ValidateHelm(ctx context.Context) error {
 	if err := ValidateCommand("helm"); err != nil {
 		return err
 	}
-	
+
 	version, err := GetCommandVersion(ctx, "helm", "version", "--short")
 	if err != nil {
 		return fmt.Errorf("failed to get helm version: %w", err)
 	}
-	
+
 	fmt.Printf("Found helm: %s\n", version)
 	return nil
 }
