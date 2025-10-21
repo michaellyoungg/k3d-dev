@@ -1,9 +1,7 @@
 package ui
 
 import (
-	"fmt"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -33,10 +31,6 @@ func (m *Model) renderHeader() string {
 	} else if m.error != nil {
 		// Show error
 		status = errorStyle.Render("✗ " + m.error.Error())
-	} else if m.status != nil {
-		// Show last refresh time
-		elapsed := time.Since(m.lastRefresh).Round(time.Second)
-		status = dimStyle.Render(fmt.Sprintf("Last updated: %s ago", elapsed))
 	}
 
 	// Pad to fill width

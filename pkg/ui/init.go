@@ -11,6 +11,6 @@ func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.spinner.Tick,
 		m.refreshStatus(),
-		tickEvery(5*time.Second),
+		tickEvery(3*time.Second),
 	)
 }

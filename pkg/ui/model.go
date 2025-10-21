@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"io"
 	"os/exec"
-	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -33,10 +32,9 @@ const (
 
 type Model struct {
 	// Shared state
-	runtime     *config.RuntimeConfig
-	orch        *orchestrator.Orchestrator
-	status      *orchestrator.EnvironmentStatus
-	lastRefresh time.Time
+	runtime *config.RuntimeConfig
+	orch    *orchestrator.Orchestrator
+	status  *orchestrator.EnvironmentStatus
 
 	// UI state
 	view        ViewMode
@@ -56,18 +54,18 @@ type Model struct {
 	viewport viewport.Model
 
 	// Log viewer state
-	logService       string
-	logs             []string
-	rawLogs          []string // Original logs before filtering
-	logsInitialized  bool
-	showTimestamps   bool
-	showPodNames     bool
-	logStreaming     bool          // Whether logs are actively streaming
-	userScrolled     bool          // Whether user has scrolled away from bottom
-	unseenLogCount   int           // Number of new logs arrived while user is scrolled up
-	logStreamCmd     *exec.Cmd     // The running kubectl logs command
-	logStreamReader  io.ReadCloser // The stdout reader for the stream
-	logBufioReader   *bufio.Reader // Buffered reader for efficient line reading
+	logService      string
+	logs            []string
+	rawLogs         []string // Original logs before filtering
+	logsInitialized bool
+	showTimestamps  bool
+	showPodNames    bool
+	logStreaming    bool          // Whether logs are actively streaming
+	userScrolled    bool          // Whether user has scrolled away from bottom
+	unseenLogCount  int           // Number of new logs arrived while user is scrolled up
+	logStreamCmd    *exec.Cmd     // The running kubectl logs command
+	logStreamReader io.ReadCloser // The stdout reader for the stream
+	logBufioReader  *bufio.Reader // Buffered reader for efficient line reading
 
 	// Dimensions
 	width  int
@@ -86,7 +84,6 @@ func RunTUI(runtime *config.RuntimeConfig) error {
 		spinner:        s,
 		help:           help.New(),
 		keys:           keys,
-		lastRefresh:    time.Now(),
 		showTimestamps: false, // Hide timestamps by default to save space
 		showPodNames:   false, // Hide pod names by default to save space
 	}

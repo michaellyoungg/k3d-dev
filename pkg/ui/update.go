@@ -40,7 +40,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Rebuild navigation items when status changes
 			m.navItems = m.buildNavItems()
 		}
-		m.lastRefresh = time.Now()
 		return m, nil
 
 	case actionCompleteMsg:
@@ -56,10 +55,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 
 	case tickMsg:
-		// Auto-refresh every 5 seconds
 		return m, tea.Batch(
 			m.refreshStatus(),
-			tickEvery(5*time.Second),
+			tickEvery(3*time.Second),
 		)
 
 	case clearMsg:
