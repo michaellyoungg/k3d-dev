@@ -116,7 +116,7 @@ func (m *Model) renderDetailPanel() string {
 	detailStyle := lipgloss.NewStyle().
 		Width(m.width-navPanelWidth-4). // Account for borders and padding
 		Height(m.height-8).             // Account for header and footer
-		Padding(1, 2)
+		Padding(0, 2)
 
 	return detailStyle.Render(content)
 }
