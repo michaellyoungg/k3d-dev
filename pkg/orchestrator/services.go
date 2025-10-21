@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
+	"sync"
 
 	"plat/pkg/config"
 	"plat/pkg/tools"
@@ -27,34 +29,99 @@ func NewServiceOrchestrator(verbose bool) *ServiceOrchestrator {
 
 // DeployServices deploys all services in the environment with dependency ordering
 func (so *ServiceOrchestrator) DeployServices(ctx context.Context, runtime *config.RuntimeConfig) error {
-	// Order services by dependencies
-	orderedServices, err := so.orderServicesByDependencies(runtime)
+	// Group services by dependency level for concurrent deployment
+	serviceLevels, err := so.groupServicesByDependencyLevel(runtime)
 	if err != nil {
 		return fmt.Errorf("failed to resolve service dependencies: %w", err)
 	}
 
 	if so.verbose {
-		fmt.Printf("🚀 Deploying %d services in dependency order\n", len(orderedServices))
-		for i, serviceName := range orderedServices {
-			fmt.Printf("  %d. %s\n", i+1, serviceName)
+		fmt.Printf("🚀 Deploying %d services across %d level(s)\n", len(runtime.ResolvedServices), len(serviceLevels))
+		for levelIdx, level := range serviceLevels {
+			if len(level) == 1 {
+				fmt.Printf("  Level %d: %s\n", levelIdx, level[0])
+			} else {
+				fmt.Printf("  Level %d: %s (concurrent)\n", levelIdx, strings.Join(level, ", "))
+			}
 		}
 	}
 
-	// Deploy services in order
-	for _, serviceName := range orderedServices {
-		service := runtime.ResolvedServices[serviceName]
-		
-		if so.verbose {
-			fmt.Printf("📦 Deploying %s...\n", serviceName)
+	// Deploy each level, services within a level deploy concurrently
+	for levelIdx, level := range serviceLevels {
+		if so.verbose && len(level) > 1 {
+			fmt.Printf("📦 Deploying level %d (%d services concurrently)...\n", levelIdx, len(level))
 		}
 
-		if err := so.deployService(ctx, service, runtime); err != nil {
-			return fmt.Errorf("failed to deploy service %s: %w", serviceName, err)
+		if err := so.deployServicesInLevel(ctx, level, runtime); err != nil {
+			return fmt.Errorf("failed to deploy level %d: %w", levelIdx, err)
 		}
 
 		if so.verbose {
-			fmt.Printf("✅ %s deployed successfully\n", serviceName)
+			fmt.Printf("✅ Level %d deployed successfully\n", levelIdx)
 		}
+	}
+
+	return nil
+}
+
+// deployServicesInLevel deploys multiple services concurrently
+func (so *ServiceOrchestrator) deployServicesInLevel(ctx context.Context, serviceNames []string, runtime *config.RuntimeConfig) error {
+	// Use error group for concurrent deployment with error aggregation
+	type deployResult struct {
+		serviceName string
+		err         error
+	}
+
+	resultChan := make(chan deployResult, len(serviceNames))
+	var wg sync.WaitGroup
+
+	// Deploy all services in this level concurrently
+	for _, serviceName := range serviceNames {
+		wg.Add(1)
+		go func(name string) {
+			defer wg.Done()
+
+			service := runtime.ResolvedServices[name]
+
+			if so.verbose {
+				fmt.Printf("📦 Deploying %s...\n", name)
+			}
+
+			err := so.deployService(ctx, service, runtime)
+
+			if err != nil {
+				resultChan <- deployResult{serviceName: name, err: err}
+			} else {
+				if so.verbose {
+					fmt.Printf("✅ %s deployed successfully\n", name)
+				}
+				resultChan <- deployResult{serviceName: name, err: nil}
+			}
+		}(serviceName)
+	}
+
+	// Wait for all deployments to complete
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	// Collect results and aggregate errors
+	var errors []error
+	for result := range resultChan {
+		if result.err != nil {
+			errors = append(errors, fmt.Errorf("%s: %w", result.serviceName, result.err))
+		}
+	}
+
+	// If any deployments failed, return combined error
+	if len(errors) > 0 {
+		var errMsg strings.Builder
+		errMsg.WriteString("service deployment failures:\n")
+		for _, err := range errors {
+			errMsg.WriteString(fmt.Sprintf("  - %v\n", err))
+		}
+		return fmt.Errorf(errMsg.String())
 	}
 
 	return nil
@@ -63,7 +130,7 @@ func (so *ServiceOrchestrator) DeployServices(ctx context.Context, runtime *conf
 // UndeployServices removes all services from the environment
 func (so *ServiceOrchestrator) UndeployServices(ctx context.Context, runtime *config.RuntimeConfig) error {
 	namespace := runtime.Base.Defaults.Namespace
-	
+
 	if so.verbose {
 		fmt.Printf("🗑️  Undeploying services from namespace: %s\n", namespace)
 	}
@@ -77,16 +144,36 @@ func (so *ServiceOrchestrator) UndeployServices(ctx context.Context, runtime *co
 	// Filter to only plat-managed releases
 	platReleases := so.filterPlatReleases(releases, runtime)
 
-	// Undeploy in reverse dependency order
-	orderedServices, err := so.orderServicesByDependencies(runtime)
+	// Group services by dependency level
+	serviceLevels, err := so.groupServicesByDependencyLevel(runtime)
 	if err != nil {
 		return fmt.Errorf("failed to resolve service dependencies: %w", err)
 	}
 
-	// Reverse the order for undeployment
-	for i := len(orderedServices) - 1; i >= 0; i-- {
-		serviceName := orderedServices[i]
-		
+	// Undeploy in reverse level order (reverse dependencies)
+	for i := len(serviceLevels) - 1; i >= 0; i-- {
+		level := serviceLevels[i]
+
+		if so.verbose && len(level) > 1 {
+			fmt.Printf("🗑️  Undeploying level %d (%d services concurrently)...\n", i, len(level))
+		}
+
+		if err := so.undeployServicesInLevel(ctx, level, platReleases, runtime, namespace); err != nil {
+			// Continue with other levels even if this one has errors
+			fmt.Printf("⚠️  Level %d undeployment had errors: %v\n", i, err)
+		}
+	}
+
+	return nil
+}
+
+// undeployServicesInLevel undeploys multiple services concurrently
+func (so *ServiceOrchestrator) undeployServicesInLevel(ctx context.Context, serviceNames []string, platReleases []tools.ReleaseInfo, runtime *config.RuntimeConfig, namespace string) error {
+	var wg sync.WaitGroup
+	errorsChan := make(chan error, len(serviceNames))
+
+	// Undeploy all services in this level concurrently
+	for _, serviceName := range serviceNames {
 		// Check if this service has a release
 		var releaseExists bool
 		for _, release := range platReleases {
@@ -96,19 +183,42 @@ func (so *ServiceOrchestrator) UndeployServices(ctx context.Context, runtime *co
 			}
 		}
 
-		if releaseExists {
+		if !releaseExists {
+			continue
+		}
+
+		wg.Add(1)
+		go func(name string) {
+			defer wg.Done()
+
 			if so.verbose {
-				fmt.Printf("🗑️  Undeploying %s...\n", serviceName)
+				fmt.Printf("🗑️  Undeploying %s...\n", name)
 			}
 
-			releaseName := so.getReleaseName(serviceName, runtime)
+			releaseName := so.getReleaseName(name, runtime)
 			if err := so.helmProvider.UninstallChart(ctx, releaseName, namespace); err != nil {
-				fmt.Printf("⚠️  Failed to undeploy %s: %v\n", serviceName, err)
-				// Continue with other services
+				errorsChan <- fmt.Errorf("%s: %w", name, err)
+				fmt.Printf("⚠️  Failed to undeploy %s: %v\n", name, err)
 			} else if so.verbose {
-				fmt.Printf("✅ %s undeployed\n", serviceName)
+				fmt.Printf("✅ %s undeployed\n", name)
 			}
-		}
+		}(serviceName)
+	}
+
+	// Wait for all undeployments
+	go func() {
+		wg.Wait()
+		close(errorsChan)
+	}()
+
+	// Collect errors (but don't fail - best effort undeployment)
+	var errors []error
+	for err := range errorsChan {
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("some services failed to undeploy: %d errors", len(errors))
 	}
 
 	return nil
@@ -218,13 +328,13 @@ func (so *ServiceOrchestrator) orderServicesByDependencies(runtime *config.Runti
 	// Build dependency graph
 	graph := make(map[string][]string)
 	inDegree := make(map[string]int)
-	
+
 	// Initialize graph
 	for serviceName, service := range runtime.ResolvedServices {
 		graph[serviceName] = service.Dependencies
 		inDegree[serviceName] = 0
 	}
-	
+
 	// Calculate in-degrees
 	for _, dependencies := range graph {
 		for _, dep := range dependencies {
@@ -233,26 +343,26 @@ func (so *ServiceOrchestrator) orderServicesByDependencies(runtime *config.Runti
 			}
 		}
 	}
-	
+
 	// Topological sort using Kahn's algorithm
 	var result []string
 	var queue []string
-	
+
 	// Find nodes with no incoming edges
 	for service, degree := range inDegree {
 		if degree == 0 {
 			queue = append(queue, service)
 		}
 	}
-	
+
 	// Sort queue for deterministic ordering
 	sort.Strings(queue)
-	
+
 	for len(queue) > 0 {
 		current := queue[0]
 		queue = queue[1:]
 		result = append(result, current)
-		
+
 		// Process dependencies
 		var nextQueue []string
 		for _, dependency := range graph[current] {
@@ -263,18 +373,78 @@ func (so *ServiceOrchestrator) orderServicesByDependencies(runtime *config.Runti
 				}
 			}
 		}
-		
+
 		// Sort for deterministic ordering
 		sort.Strings(nextQueue)
 		queue = append(queue, nextQueue...)
 	}
-	
+
 	// Check for cycles
 	if len(result) != len(runtime.ResolvedServices) {
 		return nil, fmt.Errorf("circular dependency detected in services")
 	}
-	
+
 	return result, nil
+}
+
+// groupServicesByDependencyLevel groups services by dependency level for concurrent deployment
+// Services in the same level have no dependencies on each other and can deploy concurrently
+func (so *ServiceOrchestrator) groupServicesByDependencyLevel(runtime *config.RuntimeConfig) ([][]string, error) {
+	// Build dependency graph
+	graph := make(map[string][]string)
+	inDegree := make(map[string]int)
+
+	// Initialize graph
+	for serviceName, service := range runtime.ResolvedServices {
+		graph[serviceName] = service.Dependencies
+		inDegree[serviceName] = 0
+	}
+
+	// Calculate in-degrees
+	for _, dependencies := range graph {
+		for _, dep := range dependencies {
+			if _, exists := inDegree[dep]; exists {
+				inDegree[dep]++
+			}
+		}
+	}
+
+	// Group services by level using modified Kahn's algorithm
+	var levels [][]string
+	processedCount := 0
+
+	for processedCount < len(runtime.ResolvedServices) {
+		// Find all services with no remaining dependencies (current level)
+		var currentLevel []string
+		for service, degree := range inDegree {
+			if degree == 0 {
+				currentLevel = append(currentLevel, service)
+			}
+		}
+
+		if len(currentLevel) == 0 {
+			return nil, fmt.Errorf("circular dependency detected in services")
+		}
+
+		// Sort for deterministic ordering
+		sort.Strings(currentLevel)
+		levels = append(levels, currentLevel)
+
+		// Remove current level from graph and update in-degrees
+		for _, service := range currentLevel {
+			inDegree[service] = -1 // Mark as processed
+			processedCount++
+
+			// Decrease in-degree for services that depend on this one
+			for _, dependency := range graph[service] {
+				if inDegree[dependency] > 0 {
+					inDegree[dependency]--
+				}
+			}
+		}
+	}
+
+	return levels, nil
 }
 
 // getReleaseName generates a consistent Helm release name for a service
