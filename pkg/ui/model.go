@@ -39,14 +39,13 @@ type Model struct {
 	lastRefresh time.Time
 
 	// UI state
-	view            ViewMode
-	selectedNav     int // Index in navItems slice
-	navItems        []NavItem
-	selectedService int // Deprecated - will migrate to navItems
-	loading         bool
-	operation       string // Current operation being performed
-	message         string
-	error           error
+	view        ViewMode
+	selectedNav int // Index in navItems slice
+	navItems    []NavItem
+	loading     bool
+	operation   string // Current operation being performed
+	message     string
+	error       error
 
 	// Shared components
 	spinner spinner.Model

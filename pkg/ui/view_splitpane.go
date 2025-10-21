@@ -7,9 +7,15 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Split pane layout with left navigation and right detail view
+// Split pane layout components for home view
+// This file contains:
+// - Left navigation panel rendering
+// - Right detail panel rendering (cluster and service views)
+// - Formatting helpers for navigation items and action lists
 
 const navPanelWidth = 30
+
+// Navigation Panel
 
 // renderNavPanel renders the left navigation panel
 func (m *Model) renderNavPanel() string {
@@ -21,51 +27,14 @@ func (m *Model) renderNavPanel() string {
 
 	for i, item := range m.navItems {
 		isSelected := i == m.selectedNav
-
-		var icon string
-		var line string
-
-		switch item.Type {
-		case NavItemCluster:
-			icon = "🏗️ "
-			line = icon + item.Name
-			if m.status != nil && m.status.Cluster != nil {
-				statusIcon := getStatusIcon(m.status.Cluster.Status)
-				line = statusIcon + " " + item.Name
-			}
-
-		case NavItemService:
-			if m.status != nil && m.status.Services != nil {
-				if svc, ok := m.status.Services[item.ServiceName]; ok {
-					statusIcon := getStatusIcon(svc.Status)
-					line = statusIcon + " " + item.Name
-				} else {
-					line = "⚪ " + item.Name
-				}
-			} else {
-				line = "⚪ " + item.Name
-			}
-		}
-
-		// Apply selection style
-		var style lipgloss.Style
-		if isSelected {
-			style = lipgloss.NewStyle().
-				Background(lipgloss.Color("62")).
-				Foreground(lipgloss.Color("230")).
-				Width(navPanelWidth - 2).
-				Padding(0, 1)
-		} else {
-			style = lipgloss.NewStyle().
-				Width(navPanelWidth - 2).
-				Padding(0, 1)
-		}
+		line := m.formatNavItem(item)
+		style := m.navItemStyle(isSelected)
 
 		b.WriteString(style.Render(line))
 		b.WriteString("\n")
 	}
 
-	// Style the entire nav panel
+	// Style the entire nav panel with border
 	navStyle := lipgloss.NewStyle().
 		Width(navPanelWidth).
 		BorderStyle(lipgloss.RoundedBorder()).
@@ -75,6 +44,47 @@ func (m *Model) renderNavPanel() string {
 
 	return navStyle.Render(b.String())
 }
+
+// formatNavItem formats a navigation item with icon and name
+func (m *Model) formatNavItem(item NavItem) string {
+	switch item.Type {
+	case NavItemCluster:
+		if m.status != nil && m.status.Cluster != nil {
+			icon := getStatusIcon(m.status.Cluster.Status)
+			return icon + " " + item.Name
+		}
+		return "🏗️  " + item.Name
+
+	case NavItemService:
+		if m.status != nil && m.status.Services != nil {
+			if svc, ok := m.status.Services[item.ServiceName]; ok {
+				icon := getStatusIcon(svc.Status)
+				return icon + " " + item.Name
+			}
+		}
+		return "⚪ " + item.Name
+
+	default:
+		return item.Name
+	}
+}
+
+// navItemStyle returns the style for a navigation item
+func (m *Model) navItemStyle(isSelected bool) lipgloss.Style {
+	style := lipgloss.NewStyle().
+		Width(navPanelWidth - 2).
+		Padding(0, 1)
+
+	if isSelected {
+		style = style.
+			Background(lipgloss.Color("62")).
+			Foreground(lipgloss.Color("230"))
+	}
+
+	return style
+}
+
+// Detail Panel
 
 // renderDetailPanel renders the right detail panel based on selected navigation item
 func (m *Model) renderDetailPanel() string {
@@ -151,17 +161,13 @@ func (m *Model) renderClusterDetail() string {
 	}
 
 	// Actions help
-	b.WriteString("\n")
-	b.WriteString(sectionStyle.Render("Available Actions:"))
-	b.WriteString("\n")
-	b.WriteString(dimStyle.Render("  u - Start environment (bring up cluster)"))
-	b.WriteString("\n")
-	b.WriteString(dimStyle.Render("  d - Stop services"))
-	b.WriteString("\n")
-	b.WriteString(dimStyle.Render("  D - Stop services and delete cluster"))
-	b.WriteString("\n")
-	b.WriteString(dimStyle.Render("  r - Refresh status"))
-	b.WriteString("\n")
+	actions := []string{
+		"u - Start environment (bring up cluster)",
+		"d - Stop services",
+		"D - Stop services and delete cluster",
+		"r - Refresh status",
+	}
+	b.WriteString(m.renderActionsHelp(actions))
 
 	return b.String()
 }
@@ -224,17 +230,28 @@ func (m *Model) renderServiceDetail(serviceName string) string {
 	}
 
 	// Actions help
+	actions := []string{
+		"s - Start service",
+		"x - Stop service",
+		"R - Restart service",
+		"l - View logs",
+	}
+	b.WriteString(m.renderActionsHelp(actions))
+
+	return b.String()
+}
+
+// Helpers
+
+// renderActionsHelp renders the available actions section
+func (m *Model) renderActionsHelp(actions []string) string {
+	var b strings.Builder
 	b.WriteString("\n")
 	b.WriteString(sectionStyle.Render("Available Actions:"))
 	b.WriteString("\n")
-	b.WriteString(dimStyle.Render("  s - Start service"))
-	b.WriteString("\n")
-	b.WriteString(dimStyle.Render("  x - Stop service"))
-	b.WriteString("\n")
-	b.WriteString(dimStyle.Render("  R - Restart service"))
-	b.WriteString("\n")
-	b.WriteString(dimStyle.Render("  l - View logs"))
-	b.WriteString("\n")
-
+	for _, action := range actions {
+		b.WriteString(dimStyle.Render("  " + action))
+		b.WriteString("\n")
+	}
 	return b.String()
 }
