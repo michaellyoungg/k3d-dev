@@ -33,7 +33,7 @@ func (m *Model) renderHomeView() string {
 func (m *Model) renderHome() string {
 	var b strings.Builder
 
-	if m.status == nil {
+	if len(m.components) == 0 {
 		b.WriteString(dimStyle.Render("Loading status..."))
 		return b.String()
 	}

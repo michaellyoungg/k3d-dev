@@ -35,11 +35,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			m.error = msg.err
 		} else {
-			m.status = msg.status
 			m.error = nil
+
+			// Sync components from status
+			m.syncComponentsFromStatus(msg.status)
+
 			// Rebuild navigation items when status changes
 			m.navItems = m.buildNavItems()
 		}
+		m.lastRefresh = time.Now()
 		return m, nil
 
 	case actionCompleteMsg:

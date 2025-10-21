@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"os/exec"
+	"time"
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -34,7 +35,12 @@ type Model struct {
 	// Shared state
 	runtime *config.RuntimeConfig
 	orch    *orchestrator.Orchestrator
-	status  *orchestrator.EnvironmentStatus
+
+	// Component-based status
+	components  map[string]*Component // Keyed by component ID
+	envName     string                // Environment name
+	envMode     string                // Environment mode (artifact/source)
+	lastRefresh time.Time
 
 	// UI state
 	view        ViewMode
@@ -80,6 +86,7 @@ func RunTUI(runtime *config.RuntimeConfig) error {
 	m := &Model{
 		runtime:        runtime,
 		orch:           orchestrator.NewOrchestrator(false),
+		components:     make(map[string]*Component),
 		view:           HomeView,
 		spinner:        s,
 		help:           help.New(),

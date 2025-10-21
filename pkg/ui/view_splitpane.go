@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+
+	"plat/pkg/orchestrator"
 )
 
 // Split pane layout components for home view
@@ -49,18 +51,16 @@ func (m *Model) renderNavPanel() string {
 func (m *Model) formatNavItem(item NavItem) string {
 	switch item.Type {
 	case NavItemCluster:
-		if m.status != nil && m.status.Cluster != nil {
-			icon := getStatusIcon(m.status.Cluster.Status)
+		if cluster := m.getClusterComponent(); cluster != nil {
+			icon := getStatusIcon(cluster.Status)
 			return icon + " " + item.Name
 		}
 		return "🏗️  " + item.Name
 
 	case NavItemService:
-		if m.status != nil && m.status.Services != nil {
-			if svc, ok := m.status.Services[item.ServiceName]; ok {
-				icon := getStatusIcon(svc.Status)
-				return icon + " " + item.Name
-			}
+		if svc := m.getServiceComponent(item.ServiceName); svc != nil {
+			icon := getStatusIcon(svc.Status)
+			return icon + " " + item.Name
 		}
 		return "⚪ " + item.Name
 
@@ -119,44 +119,46 @@ func (m *Model) renderClusterDetail() string {
 	b.WriteString(sectionStyle.Render("Cluster Information"))
 	b.WriteString("\n\n")
 
-	if m.status == nil || m.status.Cluster == nil {
+	comp := m.getClusterComponent()
+	if comp == nil {
 		b.WriteString(dimStyle.Render("No cluster information available"))
 		return b.String()
 	}
 
-	cluster := m.status.Cluster
-
 	// Status
-	icon := getStatusIcon(cluster.Status)
-	statusLine := fmt.Sprintf("%s Status: %s", icon, cluster.Status)
+	icon := getStatusIcon(comp.Status)
+	statusLine := fmt.Sprintf("%s Status: %s", icon, comp.Status)
 	b.WriteString(statusLine)
 	b.WriteString("\n\n")
 
-	// Name
-	if cluster.Name != "" {
-		b.WriteString(fmt.Sprintf("Name: %s", cluster.Name))
-		b.WriteString("\n")
-	}
+	// Get cluster details from StatusDetail
+	if clusterStatus, ok := comp.StatusDetail.(*orchestrator.ClusterStatus); ok && clusterStatus != nil {
+		// Name
+		if clusterStatus.Name != "" {
+			b.WriteString(fmt.Sprintf("Name: %s", clusterStatus.Name))
+			b.WriteString("\n")
+		}
 
-	// Nodes
-	if cluster.Servers > 0 || cluster.Agents > 0 {
-		b.WriteString(fmt.Sprintf("Nodes: %d server(s), %d agent(s)", cluster.Servers, cluster.Agents))
-		b.WriteString("\n")
-	}
+		// Nodes
+		if clusterStatus.Servers > 0 || clusterStatus.Agents > 0 {
+			b.WriteString(fmt.Sprintf("Nodes: %d server(s), %d agent(s)", clusterStatus.Servers, clusterStatus.Agents))
+			b.WriteString("\n")
+		}
 
-	// Error
-	if cluster.Error != "" {
-		b.WriteString("\n")
-		b.WriteString(errorStyle.Render(fmt.Sprintf("Error: %s", cluster.Error)))
-		b.WriteString("\n")
+		// Error
+		if clusterStatus.Error != "" {
+			b.WriteString("\n")
+			b.WriteString(errorStyle.Render(fmt.Sprintf("Error: %s", clusterStatus.Error)))
+			b.WriteString("\n")
+		}
 	}
 
 	// Environment info
-	if m.status != nil {
+	if m.envName != "" {
 		b.WriteString("\n")
-		b.WriteString(dimStyle.Render(fmt.Sprintf("Environment: %s", m.status.Name)))
+		b.WriteString(dimStyle.Render(fmt.Sprintf("Environment: %s", m.envName)))
 		b.WriteString("\n")
-		b.WriteString(dimStyle.Render(fmt.Sprintf("Mode: %s", m.status.Mode)))
+		b.WriteString(dimStyle.Render(fmt.Sprintf("Mode: %s", m.envMode)))
 		b.WriteString("\n")
 	}
 
@@ -179,54 +181,52 @@ func (m *Model) renderServiceDetail(serviceName string) string {
 	b.WriteString(sectionStyle.Render(fmt.Sprintf("Service: %s", serviceName)))
 	b.WriteString("\n\n")
 
-	if m.status == nil || m.status.Services == nil {
-		b.WriteString(dimStyle.Render("No service information available"))
-		return b.String()
-	}
-
-	svc, ok := m.status.Services[serviceName]
-	if !ok {
+	comp := m.getServiceComponent(serviceName)
+	if comp == nil {
 		b.WriteString(errorStyle.Render(fmt.Sprintf("Service %s not found", serviceName)))
 		return b.String()
 	}
 
 	// Status
-	icon := getStatusIcon(svc.Status)
-	statusLine := fmt.Sprintf("%s Status: %s", icon, svc.Status)
+	icon := getStatusIcon(comp.Status)
+	statusLine := fmt.Sprintf("%s Status: %s", icon, comp.Status)
 	b.WriteString(statusLine)
 	b.WriteString("\n\n")
 
-	// Version
-	if svc.Version != "" {
-		b.WriteString(fmt.Sprintf("Version: %s", svc.Version))
-		b.WriteString("\n")
-	}
+	// Get service details from StatusDetail
+	if svcStatus, ok := comp.StatusDetail.(*orchestrator.ServiceStatus); ok && svcStatus != nil {
+		// Version
+		if svcStatus.Version != "" {
+			b.WriteString(fmt.Sprintf("Version: %s", svcStatus.Version))
+			b.WriteString("\n")
+		}
 
-	// Type
-	if svc.IsLocal {
-		b.WriteString(activeStyle.Render("Type: Local"))
-		b.WriteString("\n")
-	} else {
-		b.WriteString("Type: Remote (Helm)")
-		b.WriteString("\n")
-	}
+		// Type
+		if svcStatus.IsLocal {
+			b.WriteString(activeStyle.Render("Type: Local"))
+			b.WriteString("\n")
+		} else {
+			b.WriteString("Type: Remote (Helm)")
+			b.WriteString("\n")
+		}
 
-	// Ports
-	if len(svc.Ports) > 0 {
-		b.WriteString(fmt.Sprintf("Ports: %v", svc.Ports))
-		b.WriteString("\n")
-	}
+		// Ports
+		if len(svcStatus.Ports) > 0 {
+			b.WriteString(fmt.Sprintf("Ports: %v", svcStatus.Ports))
+			b.WriteString("\n")
+		}
 
-	// Chart info (for Helm services)
-	if svc.Chart != "" {
-		b.WriteString(fmt.Sprintf("Chart: %s", svc.Chart))
-		b.WriteString("\n")
-	}
+		// Chart info (for Helm services)
+		if svcStatus.Chart != "" {
+			b.WriteString(fmt.Sprintf("Chart: %s", svcStatus.Chart))
+			b.WriteString("\n")
+		}
 
-	// Updated timestamp
-	if svc.Updated != "" {
-		b.WriteString(dimStyle.Render(fmt.Sprintf("Updated: %s", svc.Updated)))
-		b.WriteString("\n")
+		// Updated timestamp
+		if svcStatus.Updated != "" {
+			b.WriteString(dimStyle.Render(fmt.Sprintf("Updated: %s", svcStatus.Updated)))
+			b.WriteString("\n")
+		}
 	}
 
 	// Actions help
