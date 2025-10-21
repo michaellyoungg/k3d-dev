@@ -171,15 +171,6 @@ func (m *Model) renderClusterDetail() string {
 		b.WriteString("\n")
 	}
 
-	// Actions help
-	actions := []string{
-		"u - Start environment (bring up cluster)",
-		"d - Stop services",
-		"D - Stop services and delete cluster",
-		"r - Refresh status",
-	}
-	b.WriteString(m.renderActionsHelp(actions))
-
 	return b.String()
 }
 
@@ -275,29 +266,5 @@ func (m *Model) renderServiceDetail(serviceName string) string {
 		}
 	}
 
-	// Actions help
-	actions := []string{
-		"s - Start service",
-		"x - Stop service",
-		"R - Restart service",
-		"l - View logs",
-	}
-	b.WriteString(m.renderActionsHelp(actions))
-
-	return b.String()
-}
-
-// Helpers
-
-// renderActionsHelp renders the available actions section
-func (m *Model) renderActionsHelp(actions []string) string {
-	var b strings.Builder
-	b.WriteString("\n")
-	b.WriteString(sectionStyle.Render("Available Actions:"))
-	b.WriteString("\n")
-	for _, action := range actions {
-		b.WriteString(dimStyle.Render("  " + action))
-		b.WriteString("\n")
-	}
 	return b.String()
 }
